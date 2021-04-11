@@ -1,0 +1,138 @@
+# Ver. 20170404						登録に必須	DFASTに必須		DFAST自動補完の値	OpenAPIで利用しない	API実行サンプル値				
+# oprnapi:name	 oprnapi:description						openapi:required	openapi:pattern			openapi:default	openapi:type	openapi:allowEmptyValue	openapi:items	openapi:format
+# name	description	qualifier	feature	entry	type	mss_required	required	pattern	default_value	private					
+#---------- RUN_INFO (Only used internally in DFAST) ----------															
+projectType	projectType	NONE	RUN_INFO	DFAST	string	FALSE	TRUE	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)|(gss)|(sts)|(env)|(syn)|(vrl)(other)	wgs		wgs				
+dataset	dataset	NONE	RUN_INFO	DFAST	string	FALSE	TRUE	(default)|(lab)|(cyanobase)|(ecoli)|(firmicutes)|(actinobacteria)|(proteobacteria)|(refseq)			default				
+sequence	Genome sequence data	NONE	RUN_INFO	DFAST	string	FALSE	TRUE				>seq1\nTACAGAGAAAATTTTCAAAAATGGCTGAAAAAATGGAGGCTGATGTAGTTATCGTTGGGCCAACATTTGATTATCATGATTTCGCCGAAATGGCGGTAGAAATTGGAATTGCAATTACAGAAAACACTAGCATTCCTGTAATCGGAGCTATAGCAAAAGAAAAGAATCAAGAACTTATTGAAAAATATAAAGACAAATTTCCAATTGTTAAGATGCCTAAAAAAGGTGGTACCGGTCTTGCTGAATCCTTAGATAATTTGGCTAAGGGGTGTCAAATTTTAACAAATAAAGGAGATATTGCAAAATTTAAGGGAAGTTACTGCTATTAGTTTTTTTCAGTTGGAGGTTTTAAAATGCAAAAGAAATTTGAGAAGGTGCTGATGCCAGTTGCCTCGAAGCTAGGGAATAATGTTGTTTTAATGTCATTGCGTGATGGCTTTTTAATTATTACACCTCTGATCATAGTTACTTCTATATTTTTACTTATTGGTAATT				
+sequenceFile	FASTA file to be uploaded	NONE	RUN_INFO	DFAST	file	FALSE	FALSE								
+metadataFile	Tab-separated file for metadata	NONE	RUN_INFO	DFAST	file	FALSE	FALSE								
+minimumContigLength	minimumContigLength	NONE	RUN_INFO	DFAST	integer	FALSE	FALSE	\d+	200						
+job_title	Job title	NONE	RUN_INFO	DFAST	string	FALSE	FALSE	[A-Za-z0-9 ,_;:\[\]\(\)\-\.]+							
+mail	Job owner's email	NONE	RUN_INFO	DFAST	string	FALSE	FALSE	[A-Za-z0-9_@,\.\-]*							
+#---------- SEQ_INFO (Only used internally in DFAST) ----------															
+seqStatus	seqStatus	seqStatus	SEQ_INFO	DFAST	string	FALSE	FALSE	(draft)|(complete)		private					
+seqTypes	seqTypes	seqTypes	SEQ_INFO	DFAST	array	FALSE	FALSE	[a-z]*							
+seqTopologies	seqTopologies	seqTopologies	SEQ_INFO	DFAST	array	FALSE	FALSE	[a-z]*							
+seqNames	seqNames	seqNames	SEQ_INFO	DFAST	array	FALSE	FALSE	[A-Za-z0-9 _\-]+	sequence						
+locusTagPrefix	locusTagPrefix	locusTagPrefix	SEQ_INFO	DFAST	string	FALSE	FALSE	[A-Za-z][A-Za-z0-9]*	LOCUS						
+seqRank	seqRank	seqRank	SEQ_INFO	DFAST	string	FALSE	FALSE	(contig)|(scaffold)		private					
+#---------- ORGANISM_INFO  (Only used internally in DFAST) ----------															
+genus	genus	genus	ORGANISM_INFO	DFAST	string	FALSE	FALSE	[A-Za-z0-9 ,_\[\]\(\)\-\.]+		private					
+species	species	species	ORGANISM_INFO	DFAST	string	FALSE	FALSE	[A-Za-z0-9 ,_\[\]\(\)\-\.]+		private					
+typeStrain	Type Strain	typeStrain	source	EX_SOURCE	string	FALSE	FALSE	(YES)|(NO)							
+#---------- DIVISON ----------															
+division	Data Division	division	DIVISION	COMMON	array	FALSE	FALSE	(CON)|(ENV)|(EST)|(GSS)|(HTC)|(HTG)|(STS)|(SYN)|(TSA)		private					
+#---------- DATATYPE ----------															
+dataType	Data Type	type	DATATYPE	COMMON	string	FALSE	FALSE	(WGS)|(TPA)		private					
+#---------- KEYWORD ----------															
+keyword	Keyword	keyword	KEYWORD	COMMON	array	FALSE	FALSE	(WGS)|(TSA)|(STANDARD_DRAFT)|(HIGH_QUALITY_DRAFT)|(IMPROVED_HIGH_QUALITY_DRAFT)|(NON_CONTIGUOUS_FINISHED)|(Transcriptome Shotgun Assembly)							
+#---------- DBLINK ----------															
+bioproject	BioProject ID	project	DBLINK	COMMON	string	TRUE	FALSE	PRJ[A-Z]{1,2}\d{4,8}							
+biosample	BioSample ID	biosample	DBLINK	COMMON	array	TRUE	FALSE	SAM[A-Z]{1,2}\d{4,8}							
+sra	SRA accession	sequence read archive	DBLINK	COMMON	array	FALSE	FALSE	[DES]RR\d{6}							
+#															
+#---------- SUBMITTER ----------															
+submitter	Submitter	ab_name	SUBMITTER	COMMON	array	TRUE	FALSE	[A-Za-z0-9',\.\-]*							
+consrtm	Consortium	consrtm	SUBMITTER	COMMON	string	FALSE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+contact	Contact Person	contact	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9 ',\.\-]*							
+email	Email	email	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9_@,\.\-]*							
+url	URL	url	SUBMITTER	COMMON	string	FALSE	FALSE	[^ `\\<>]*							
+phone	Phone	phone	SUBMITTER	COMMON	string	TRUE	FALSE	[\d\-]{0,16}							
+phext	Phone ext.	phext	SUBMITTER	COMMON	string	FALSE	FALSE	[\d\-]{0,16}							
+fax	Fax	fax	SUBMITTER	COMMON	string	FALSE	FALSE	[\d\-]{0,16}							
+institute	Institute	institute	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+department	Department	department	SUBMITTER	COMMON	string	FALSE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+country	Country	country	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+state	State	state	SUBMITTER	COMMON	string	FALSE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+city	City	city	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+street	Street	street	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+ZIP	ZIP	zip	SUBMITTER	COMMON	string	TRUE	FALSE	[A-Za-z0-9\-]{0,16}							
+#															
+#---------- Reference ----------															
+reference	Reference Title	title	REFERENCE	COMMON	string	TRUE	FALSE	[^`\\]*							
+author	Author	ab_name	REFERENCE	COMMON	array	TRUE	FALSE	[A-Za-z0-9',\.\-]*							
+refconsrtm	Consortium	consrtm	REFERENCE	COMMON	string	FALSE	FALSE	[A-Za-z0-9',@#:_ \(\)\.\-]*							
+status	Status	status	REFERENCE	COMMON	string	TRUE	FALSE	(Unpublished)|(In press)|(Published)	Unpublished						
+year	Year	year	REFERENCE	COMMON	string	TRUE	FALSE	\d{4}							
+journal	Journal	journal	REFERENCE	COMMON	string	FALSE	FALSE	[^`<>\\]*							
+volume	Volume	volume	REFERENCE	COMMON	string	FALSE	FALSE	[A-Za-z0-9\-\(\),\. ]{0,20}							
+start_page	Start Page	start_page	REFERENCE	COMMON	string	FALSE	FALSE	[A-Za-z0-9\-]{0,8}							
+end_page	End Page	end_page	REFERENCE	COMMON	string	FALSE	FALSE	[A-Za-z0-9\-]{0,8}							
+pubmed	PubMed ID	pubmed	OTHER	DFAST	string	FALSE	FALSE	\d{0,12}							
+#															
+#---------- DATE ----------															
+holdDate	Hold Date	hold_date	DATE	COMMON	string	FALSE	FALSE	\d{8}							
+#															
+#---------- COMMENT ----------															
+comment	Comment	line	COMMENT	COMMON	array	FALSE	FALSE	[^`<>\\]*							
+estcomment	Comment for EST strand	line	COMMENT:EST	COMMON	string	FALSE	FALSE	(3'\-EST sequences are presented as sense strand\.)|(3'\-EST sequences are presented as anti\-sense strand\.)		private					
+#															
+#---------- ST_COMMENT ----------															
+tagset_id	Tagset ID	tagset_id	ST_COMMENT	COMMON	string	FALSE	FALSE	(Genome\-Assembly\-Data)|(Assembly\-Data)		private					
+Finishing_Goal	Finishing Goal of the Project	Finishing Goal	ST_COMMENT	COMMON	string	FALSE	FALSE	(Standard Draft)|(High\-Quality Draft)|(Improved High\-Quality Draft)|(Noncontiguous Finished)|(Finished)							
+Current_Finishing_Status	Current Finishing Status	Current Finishing Status	ST_COMMENT	COMMON	string	FALSE	FALSE	(Standard Draft)|(High\-Quality Draft)|(Improved High\-Quality Draft)|(Noncontiguous Finished)|(Finished)							
+assemblyMethod	Assembly Method	Assembly Method	ST_COMMENT	COMMON	string	FALSE	FALSE	[A-Za-z0-9 ,_;:\[\]\(\)\-\.]+							
+Assembly_Name	Assembly Name	Assembly Name	ST_COMMENT	COMMON	string	FALSE	FALSE	[A-Za-z0-9 ,_\[\]\(\)\-\.]+							
+coverage2	Coverage	Coverage	ST_COMMENT	COMMON	string	FALSE	FALSE	\d+[Xx]							
+coverage	Genome Coverage	Genome Coverage	ST_COMMENT	COMMON	string	FALSE	FALSE	\d+[Xx]							
+sequencingTechnology	Sequencing Technology	Sequencing Technology	ST_COMMENT	COMMON	string	FALSE	FALSE	[A-Za-z0-9 ,_;:\[\]\(\)\-\.]+							
+#															
+#---------- source ----------															
+organism	organism	organism	source	COMMON/ENTRY	string	TRUE	FALSE	[A-Za-z0-9_, \[\]\(\)\-\.]+							
+strain	strain	strain	source	COMMON/ENTRY	string	FALSE	FALSE	[A-Za-z0-9 ,_\[\]\(\)\-\.]+							
+cultureCollection	Culture Collection	culture_collection	source	EX_SOURCE	string	FALSE	FALSE	[A-Za-z0-9 :,_\[\]\(\)\-\.]+							
+mol_type	mol_type	mol_type	source	COMMON/ENTRY	string	TRUE	FALSE	(genomic DNA)|(genomic RNA)|(mRNA)|(tRNA)|(rRNA)|(other RNA)|(other DNA)|(transcribed RNA)|(viral cRNA)|(unassigned DNA)|(unassigned RNA)		private					
+ff_definition	ff_definition	ff_definition	source	COMMON/ENTRY	string	FALSE	FALSE	[A-Za-z0-9 @:,_\[\]\(\)\-\.]+							
+#---------- genbank ----------															
+lineage	lineage	lineage	genbank	genbank	array	FALSE	FALSE	[A-Za-z]+							
+tax_id	tax_id	tax_id	genbank	genbank	string	FALSE	FALSE	[0-9]+							
+#															
+#---------- source extended ----------															
+altitude	altitude	altitude	source	EX_SOURCE	string	FALSE	FALSE	.*							
+bio_material	bio_material	bio_material	source	EX_SOURCE	string	FALSE	FALSE	.*							
+cell_line	cell_line	cell_line	source	EX_SOURCE	string	FALSE	FALSE	.*							
+cell_type	cell_type	cell_type	source	EX_SOURCE	string	FALSE	FALSE	.*							
+chromosome	chromosome	chromosome	source	EX_SOURCE	string	FALSE	FALSE	.*							
+clone	clone	clone	source	EX_SOURCE	string	FALSE	FALSE	.*							
+clone_lib	clone_lib	clone_lib	source	EX_SOURCE	string	FALSE	FALSE	.*							
+collected_by	collected_by	collected_by	source	EX_SOURCE	string	FALSE	FALSE	.*							
+collection_date	collection_date	collection_date	source	EX_SOURCE	string	FALSE	FALSE	.*							
+source_country	country	country	source	EX_SOURCE	string	FALSE	FALSE	.*							
+cultivar	cultivar	cultivar	source	COMMON/ENTRY	string	FALSE	FALSE	.*							
+dev_stage	dev_stage	dev_stage	source	EX_SOURCE	string	FALSE	FALSE	.*							
+ecotype	ecotype	ecotype	source	EX_SOURCE	string	FALSE	FALSE	.*							
+environmental_sample	environmental_sample	environmental_sample	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+focus	focus	focus	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+frequency	frequency	frequency	source	EX_SOURCE	string	FALSE	FALSE	.*							
+germline	germline	germline	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+haplogroup	haplogroup	haplogroup	source	EX_SOURCE	string	FALSE	FALSE	.*							
+haplotype	haplotype	haplotype	source	EX_SOURCE	string	FALSE	FALSE	.*							
+host	host	host	source	EX_SOURCE	string	FALSE	FALSE	.*							
+identified_by	identified_by	identified_by	source	EX_SOURCE	string	FALSE	FALSE	.*							
+isolate	isolate	isolate	source	COMMON/ENTRY	string	FALSE	FALSE	.*							
+isolation_source	isolation_source	isolation_source	source	EX_SOURCE	string	FALSE	FALSE	.*							
+lab_host	lab_host	lab_host	source	EX_SOURCE	string	FALSE	FALSE	.*							
+lat_lon	lat_lon	lat_lon	source	EX_SOURCE	string	FALSE	FALSE	.*							
+macronuclear	macronuclear	macronuclear	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+map	map	map	source	EX_SOURCE	string	FALSE	FALSE	.*							
+mating_type	mating_type	mating_type	source	EX_SOURCE	string	FALSE	FALSE	.*							
+source_note	note	note	source	COMMON/ENTRY	array	FALSE	FALSE	.*							
+organelle	organelle	organelle	source	EX_SOURCE	string	FALSE	FALSE	.*							
+PCR_primers	PCR_primers	PCR_primers	source	EX_SOURCE	string	FALSE	FALSE	.*							
+plasmid	plasmid	plasmid	source	EX_SOURCE	string	FALSE	FALSE	.*							
+pop_variant	pop_variant	pop_variant	source	EX_SOURCE	string	FALSE	FALSE	.*							
+proviral	proviral	proviral	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+rearranged	rearranged	rearranged	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+segment	segment	segment	source	EX_SOURCE	string	FALSE	FALSE	.*							
+serotype	serotype	serotype	source	EX_SOURCE	string	FALSE	FALSE	.*							
+serovar	serovar	serovar	source	EX_SOURCE	string	FALSE	FALSE	.*							
+sex	sex	sex	source	EX_SOURCE	string	FALSE	FALSE	.*							
+specimen_voucher	specimen_voucher	specimen_voucher	source	EX_SOURCE	string	FALSE	FALSE	.*							
+sub_clone	sub_clone	sub_clone	source	EX_SOURCE	string	FALSE	FALSE	.*							
+sub_species	sub_species	sub_species	source	EX_SOURCE	string	FALSE	FALSE	.*							
+sub_strain	sub_strain	sub_strain	source	EX_SOURCE	string	FALSE	FALSE	.*							
+tissue_lib	tissue_lib	tissue_lib	source	EX_SOURCE	string	FALSE	FALSE	.*							
+tissue_type	tissue_type	tissue_type	source	EX_SOURCE	string	FALSE	FALSE	.*							
+transgenic	transgenic	transgenic	source	EX_SOURCE	boolean	FALSE	FALSE	(YES)|(NO)							
+variety	variety	variety	source	EX_SOURCE	string	FALSE	FALSE	.*							

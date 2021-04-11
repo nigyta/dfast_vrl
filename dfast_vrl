@@ -1,0 +1,41 @@
+#!/usr/bin/env python
+
+import os
+import sys
+from dfv.vadr import run as run_vadr
+from dfv.vadr2ddbj import VADR2DDBJ
+from dfv.genbank2mss import MSS2
+from dfv.preprocessing import preprocess_contigs
+
+# ftr_file = "../vadr_with_truncated/1_vadr_finished.vadr.ftr"
+# input_fasta = "../vadr_with_truncated/1_vadr_finished.vadr.pass.fa"
+work_dir = "test_dfast_vrl"
+pp_work_dir = os.path.join(work_dir, "preprocessing")
+vadr_work_dir = os.path.join(work_dir, "vadr")
+os.makedirs(work_dir, exist_ok=True)
+
+
+input_fasta = "examples/LC570964-6.draft.contigs.fa"
+scaffolding = True
+preprocessing_result_fasta = os.path.join(pp_work_dir, "preprocessed.fa")
+
+
+vadr_prefix = os.path.basename(vadr_work_dir)
+ftr_file = os.path.join(vadr_work_dir, vadr_prefix + ".vadr.ftr")
+vadr_out_fasta = os.path.join(vadr_work_dir, vadr_prefix + ".vadr.pass.fa")
+
+metadata_file = "examples/metadata.txt"
+output_gbk = os.path.join(work_dir, "dfast_vrl.gbk")
+mss_file_prefix = "mss"
+
+
+preprocess_contigs(input_fasta, pp_work_dir, output_fasta=None, reference_fasta=None, scaffolding=scaffolding)
+
+
+run_vadr(preprocessing_result_fasta, vadr_work_dir)
+
+v2d = VADR2DDBJ(vadr_out_fasta, ftr_file)
+v2d.to_gbk(output_gbk)
+
+mss = MSS2(output_gbk, metadata_file)
+mss.convert(work_dir, mss_file_prefix)

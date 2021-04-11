@@ -1,0 +1,139 @@
+# name	flag	pattern	target_name	action	value	private	comment
+projectType	value	^$	projectType	value	wgs		
+# division
+projectType	value	(gnm)|(wgs)	division	DELETE			wgsでは不要
+projectType	value	(con)|(htg)|(tsa)|(htc)|(est)|(gss)|(sts)|(env)|(syn)	division	mss_required	TRUE		
+projectType	value	(con)	division	value	CON		
+projectType	value	(htg)	division	SETDEFAULT	HTG		
+projectType	value	(tsa)	division	value	TSA		
+projectType	value	(htc)	division	SETDEFAULT	HTC		
+projectType	value	(est)	division	value	EST		
+projectType	value	(gss)	division	value	GSS		
+projectType	value	(sts)	division	value	STS		
+projectType	value	(env)	division	value	ENV		
+projectType	value	(syn)	division	value	SYN		
+# data type
+projectType	value	(gnm)|(htg)|(tsa)|(htc)|(est)|(gss)|(sts)|(env)|(syn)	dataType	DELETE			コンプリートでは不要
+projectType	value	(wgs)|(con)	dataType	pattern	(WGS)		コンプリートでは不要
+projectType	value	(wgs)|(con)	dataType	value	WGS		コンプリートでは不要
+projectType	value	(wgs)|(con)|(tpa)	dataType	mss_required	TRUE		コンプリートでは不要
+projectType	value	(tpa)	dataType	pattern	(TPA)		
+projectType	value	(tpa)	dataType	value	TPA		
+# keyword
+projectType	value	(wgs)|(con)|(htg)|(tsa)|(htc)|(est)|(gss)|(sts)|(env)	keyword	mss_required	TRUE		コンプリートでは不要
+projectType	value	(gnm)	keyword	DELETE			コンプリートでは不要
+projectType	value	(wgs)	keyword	pattern	(WGS)|(STANDARD_DRAFT)|(HIGH_QUALITY_DRAFT)|(IMPROVED_HIGH_QUALITY_DRAFT)|(NON_CONTIGUOUS_FINISHED)		WGSの場合
+projectType	value	(wgs)	keyword	SETDEFAULT	WGS; STANDARD_DRAFT		ドラフトゲノムの場合のデフォルト
+projectType	value	(con)	keyword	pattern	(STANDARD_DRAFT)|(HIGH_QUALITY_DRAFT)|(IMPROVED_HIGH_QUALITY_DRAFT)|(NON_CONTIGUOUS_FINISHED)		WGSの場合
+projectType	value	(con)	keyword	SETDEFAULT	STANDARD_DRAFT		ドラフトゲノムの場合のデフォルト
+projectType	value	(htg)	keyword	pattern	(HTG)|(HTGS_PHASE0)|(HTGS_PHASE1)|(HTGS_PHASE2)|(HTGS_DRAFT)|(HTGS_ENRICHED)|(HTGS_POOLED_CLONE)|(HTGS_POOLED_MULTICLONE)		
+projectType	value	(htg)	keyword	SETDEFAULT	HTG; HTGS_PHASE0		
+projectType	value	(tsa)	keyword	value	TSA; Transcriptome Shotgun Assembly		
+projectType	value	(tsa)	keyword	pattern	(TSA)|(Transcriptome Shotgun Assembly)		
+projectType	value	(htc)	keyword	SETDEFAULT	HTC		
+projectType	value	(htc)	keyword	pattern	(HTC)|(HTC_FLI)|(FLI_CDNA)|(oligo capping)|(CAP trapper)		
+projectType	value	(est)	keyword	pattern	(EST)|(5'\-end sequence \(5'\-EST\))|(3'\-end sequence \(3'\-EST\))|(unspecified EST)		
+projectType	value	(est)	keyword	SETDEFAULT	EST; unspecified EST		
+projectType	value	(gss)	keyword	pattern	(GSS)		
+projectType	value	(gss)	keyword	value	GSS		
+projectType	value	(sts)	keyword	pattern	(STS)		
+projectType	value	(sts)	keyword	value	STS		
+projectType	value	(other)	keyword	pattern	(WGS)|(STANDARD_DRAFT)|(HIGH_QUALITY_DRAFT)|(IMPROVED_HIGH_QUALITY_DRAFT)|(NON_CONTIGUOUS_FINISHED)|(TSA)|(Transcriptome Shotgun Assembly)|(HTG)|(HTGS_PHASE0)|(HTGS_PHASE1)|(HTGS_PHASE2)|(HTGS_DRAFT)|(HTGS_ENRICHED)|(HTGS_POOLED_CLONE)|(HTGS_POOLED_MULTICLONE)|(EST)|(5'\-end sequence \(5'\-EST\))|(3'\-end sequence \(3'\-EST\))|(unspecified EST)|(HTC)|(HTC_FLI)|(FLI_CDNA)|(oligo capping)|(CAP trapper)|(ENV)|(GSS)|(STS)|(TPA)|(Third Party Data)|(TPA:inferential)|(TPA:experimental)		
+# reference							
+status	value	(In press)|(Published)	journal	mss_required	TRUE		
+status	value	(Published)	volume	mss_required	TRUE		
+status	value	(Published)	start_page	mss_required	TRUE		
+status	value	(Published)	end_page	mss_required	TRUE		
+status	value	^$	status	SETDEFAULT	Unpublished		referenceのstatusが空欄の場合はUnpublishedを指定
+refconsrtm	value	.+	author	mss_required	FALSE		consrtmの値がある場合は省略可能
+#submitter							
+consrtm	value	.+	submitter	mss_required	FALSE		consrtmの値がある場合は省略可能
+consrtm	value	.+	contact	mss_required	FALSE		consrtmの値がある場合は省略可能	
+# comment
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(tsa)|(htc)|(sts)|(syn)	estcomment	DELETE			
+# structured_comment
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)	tagset_id	mss_required	TRUE		genome/transcript_projectでは必須
+projectType	value	(gss)|(sts)|(env)|(syn)	tagset_id	DELETE			genome/transcript_project以外では不要
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(vrl)	tagset_id	value	Genome-Assembly-Data		ゲノムプロジェクトの場合
+projectType	value	(gnm)|(wgs)|(con)|(htg)	tagset_id	pattern	(Genome\-Assembly\-Data)		ゲノムプロジェクトの場合
+projectType	value	(tsa)|(est)|(htc)	tagset_id	value	Assembly-Data		transcriptome_projectの場合
+projectType	value	(tsa)|(est)|(htc)	tagset_id	pattern	(Assembly\-Data)		transcriptome_projectの場合
+projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Current_Finishing_Status	DELETE			genome_project以外では不要
+projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Finishing_Goal	DELETE			genome_project以外では不要
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)|(vrl)	assemblyMethod	mss_required	TRUE		genome/transcript_projectでは必須
+projectType	value	(gss)|(sts)|(env)|(syn)	assemblyMethod	DELETE			genome/transcript_project以外では不要
+projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Assembly_Name	DELETE			genome_project以外では不要
+projectType	value	(gnm)|(wgs)|(con)|(htg)	coverage	mss_required	TRUE		genome_projectでは必須
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(env)|(syn)	coverage2	DELETE	TRUE		genome_projectでは必須
+projectType	value	(tsa)|(est)|(htc)|(gss)|(sts)|(env)|(syn)	coverage	DELETE			genome/transcript_project以外では不要
+projectType	value	(gss)|(sts)|(env)|(syn)	coverage2	DELETE			genome/transcript_project以外では不要
+#projectType	value	(tsa)|(est)|(htc)	coverage	qualifier	Coverage		transcript_projectでは名称変更
+#projectType	value	(tsa)|(est)|(htc)	coverage	description	Coverage		transcript_projectでは名称変更
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)	sequencingTechnology	mss_required	TRUE		genome/transcript_projectでは必須
+projectType	value	(gss)|(sts)|(env)|(syn)	sequencingTechnology	DELETE			genome/transcript_project以外では不要	
+# for source feature							
+## mol_type
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)	mol_type	value	genomic DNA		ゲノムプロジェクトの場合
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)	mol_type	pattern	(genomic DNA)		ゲノムプロジェクトの場合
+projectType	value	(tsa)	mol_type	SETDEFAULT	mRNA		
+projectType	value	(tsa)	mol_type	pattern	(mRNA)|(transcribed RNA)		
+projectType	value	(est)|(htc)	mol_type	value	mRNA		
+projectType	value	(est)|(htc)	mol_type	pattern	(mRNA)		
+projectType	value	(vrl)	mol_type	SETDEFAULT	genomic RNA		
+## ff_definition
+projectType	value	(gnm)	ff_definition	SETDEFAULT	@@[organism]@@ @@[strain]@@ DNA, complete genome: @@[entry]@@		ff_definition推奨値
+projectType	value	(wgs)	ff_definition	SETDEFAULT	@@[organism]@@ @@[strain]@@ DNA, @@[submitter_seqid]@@		ff_definition推奨値
+projectType	value	(est)	ff_definition	SETDEFAULT	@@[organism]@@ cDNA, clone: @@[clone]@@		ff_definition推奨値
+projectType	value	(tsa)	ff_definition	SETDEFAULT	TSA: @@[organism]@@ mRNA, contig: @@[entry]@@		ff_definition推奨値
+projectType	value	(htg)	ff_definition	SETDEFAULT	@@[organism]@@ DNA, chromosome: [chromosome, map], [BAC/YAC] clone: @@[clone]@@		ff_definition推奨値
+projectType	value	(vrl)	ff_definition	SETDEFAULT	@@[organism]@@ @@[isolate]@@ RNA, complete genome		ff_definition推奨値
+## clone
+projectType	value	(est)|(htg)|(gss)|(htc)	clone	ADDFIELD			est, htg, gss, htcではclone qualifierが必須
+projectType	value	(est)|(htg)|(gss)|(htc)	clone	mss_required	TRUE		est, htg, gss, htcではclone qualifierが必須
+projectType	value	(est)|(htg)|(gss)|(htc)	clone_lib	ADDFIELD			est, htg, gss, htcではclone qualifierが必須
+## for transcriptome
+projectType	value	(tsa)|(htc)|(est)	tissue_type	ADDFIELD			transcriptomeの場合
+projectType	value	(tsa)|(htc)|(est)	dev_stage	ADDFIELD			
+projectType	value	(tsa)|(htc)|(est)	mating_type	ADDFIELD			
+projectType	value	(tsa)|(htc)|(est)	sex	ADDFIELD			
+## case for env
+projectType	value	(env)	environmental_sample	ADDFIELD			
+projectType	value	(env)	environmental_sample	mss_required	TRUE		
+projectType	value	(env)	environmental_sample	value	YES		
+projectType	value	(env)	isolation_source	ADDFIELD			
+projectType	value	(env)	clone	ADDFIELD			
+# projectType	value	(env)	isolate	ADDFIELD			
+projectType	value	(env)	strain	DELETE			
+## case for sts
+projectType	value	(sts)	chromosome	ADDFIELD			
+projectType	value	(sts)	map	ADDFIELD			
+projectType	value	(sts)	PCR_condition	ADDFIELD			
+# complete genome (gnm)							
+projectType	value	(gnm)	seqStatus	value	complete	private	コンプリートの場合
+projectType	value	(gnm)	seqStatus	pattern	(complete)	private	コンプリートの場合
+projectType	value	(gnm)	seqRank	value		private	コンプリートでは不要
+# case of wgs							
+projectType	value	(wgs)	seqStatus	value	draft	private	コンプリートの場合
+projectType	value	(wgs)	seqStatus	pattern	(draft)	private	コンプリートの場合
+projectType	value	(wgs)	seqRank	SETDEFAULT	contig	private	コンプリートでは不要
+projectType	value	(wgs)	seqRank	pattern	(scaffold)|(contig)	private	コンプリートでは不要
+projectType	value	(wgs)	seqTypes	value		private	
+projectType	value	(wgs)	seqTopologies	value		private	
+# case of wgs							
+projectType	value	(vrl)	bioproject	mss_required	FALSE		
+projectType	value	(vrl)	biosample	mss_required	FALSE		
+projectType	value	(vrl)	isolate	ADDFIELD			
+projectType	value	(vrl)	collection_date	ADDFIELD			
+projectType	value	(vrl)	source_country	ADDFIELD			
+projectType	value	(vrl)	host	ADDFIELD			
+projectType	value	(vrl)	isolation_source	ADDFIELD			
+projectType	value	(vrl)	isolate	mss_required	TRUE			
+projectType	value	(vrl)	collection_date	mss_required	TRUE			
+projectType	value	(vrl)	source_country	mss_required	TRUE			
+projectType	value	(vrl)	host	mss_required	TRUE			
+projectType	value	(vrl)	isolation_source	mss_required	TRUE			
+# case of genome project							
+#projectType	value	(gnm)|(wgs)|(con)	strain	mss_required	TRUE	DFASTのみ	ゲノムプロジェクトの場合
+#projectType	value	(gnm)|(wgs)|(con)	strain	SETDEFAULT	unkown	DFASTのみ	ゲノムプロジェクトの場合
+#projectType	value	(gnm)|(wgs)|(con)	typeStrain	ADDFIELD			
+#projectType	value	(gnm)|(wgs)|(con)	cultureCollection	ADDFIELD			
