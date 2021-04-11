@@ -24,3 +24,9 @@ Example:
 ## Docker container
   Includes VADR and Python modules  
   Modified from [staphb/vadr](https://hub.docker.com/r/staphb/vadr/)
+
+Example:
+Invoke `docker run` from the application root directory (where the dfast_vrl script exists).
+```
+docker run -v $PWD:/data -it --rm nigyta/dfast_vrl:latest dfast_vrl -i examples/LC570964-6.draft.contigs.fa -m examples/metadata.txt --enable_scaffolding --force -o OUTDOCKER
+```

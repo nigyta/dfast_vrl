@@ -54,12 +54,17 @@ RUN wget -O vadr-models-corona.tar.gz https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/
  cp -n /vadr-models-corona-${VADR_CORONA_MODELS_VERSION}/* ${VADRMODELDIR} && \
  rm -rf /vadr-models-corona*
 
-RUN apt-get install -y python3.8 python3-pip && \
+RUN apt-get install -y python3.8 python3-pip git && \
   apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
   pip3 install biopython && \
   cd /usr/bin && \
   ln -s python3.8 python && \
   ln -s pip3 pip
+
+RUN cd / && \
+  git clone https://github.com/nigyta/dfast_vrl.git && \
+  cd /usr/bin && \
+  ln -s /dfast_vrl/dfast_vrl 
 
 # set working directory
 WORKDIR /data
