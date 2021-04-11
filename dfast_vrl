@@ -2,40 +2,102 @@
 
 import os
 import sys
+from argparse import ArgumentParser
 from dfv.vadr import run as run_vadr
 from dfv.vadr2ddbj import VADR2DDBJ
 from dfv.genbank2mss import MSS2
 from dfv.preprocessing import preprocess_contigs
 
-# ftr_file = "../vadr_with_truncated/1_vadr_finished.vadr.ftr"
-# input_fasta = "../vadr_with_truncated/1_vadr_finished.vadr.pass.fa"
-work_dir = "test_dfast_vrl"
+dfv_version = "0.0.2"
+
+def parse_args():
+    parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
+    parser.add_argument('--version', version=f'DFAST_VRL ver. {dfv_version}', action='version', help="Show program version", default=False)
+    parser.add_argument(
+        "-i",
+        "--input_fasta",
+        type=str,
+        # required=True,
+        help="Input FASTA file (raw or gzipped) [required]",
+        metavar="PATH"
+    )
+    parser.add_argument(
+        "-m",
+        "--metadata_file",
+        type=str,
+        help="Metadata file (Tab-separated table) [Optional]",
+        metavar="PATH"
+    )
+    parser.add_argument(
+        "-o",
+        "--out_dir",
+        type=str,
+        help="Output directory (default: OUT)",
+        metavar="PATH",
+        default="OUT"
+    )
+    parser.add_argument(
+        '--enable_scaffolding',
+        action='store_true',
+        help='Fill gaps between contigs with runs of Ns of estimated length'
+    )
+    parser.add_argument(
+        '--force',
+        action='store_true',
+        help='Force overwriting result'
+    )
+    parser.add_argument(
+        '--debug',
+        action='store_true',
+        help='Debug mode'
+    )
+    if len(sys.argv)==1:
+        parser.print_help()
+        exit()
+    args = parser.parse_args()
+    return args
+
+args = parse_args()
+
+if args.input_fasta is None:
+    sys.stderr.write("DFAST_VRL: error: Query FASTA is not specified. Aborted.\n")
+    exit(1)
+
+
+# Prepare working directories
+work_dir = args.out_dir
 pp_work_dir = os.path.join(work_dir, "preprocessing")
 vadr_work_dir = os.path.join(work_dir, "vadr")
-os.makedirs(work_dir, exist_ok=True)
+if os.path.exists(work_dir) and not args.force:
+    if not args.force:
+        sys.stderr.write("DFAST_VRL: error: Output directory already exists. Use '--force' to overwrite.\n")
+        exit(1)
+else:
+    os.makedirs(work_dir, exist_ok=True)
 
 
-input_fasta = "examples/LC570964-6.draft.contigs.fa"
-scaffolding = True
-preprocessing_result_fasta = os.path.join(pp_work_dir, "preprocessed.fa")
+
+# Execution
+##1. Preprocessing
+preprocessing_result_fasta = preprocess_contigs(args.input_fasta, pp_work_dir, 
+    output_fasta=None, reference_fasta=None, scaffolding=args.enable_scaffolding)
+
+##2. Run VADR
+vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_work_dir)
 
 
-vadr_prefix = os.path.basename(vadr_work_dir)
-ftr_file = os.path.join(vadr_work_dir, vadr_prefix + ".vadr.ftr")
-vadr_out_fasta = os.path.join(vadr_work_dir, vadr_prefix + ".vadr.pass.fa")
+##3. Format conversion
+output_gbk = os.path.join(work_dir, "annotation.gbk")
+mss_file_prefix = "ddbj"
+if args.metadata_file is None:
+    # Create dummy metadata file
+    metadata_file = os.path.join(work_dir, "metadata.txt")
+    with open(metadata_file, "w") as f:
+        f.write("projectType\tvrl")
+else:
+    metadata_file = args.metadata_file
 
-metadata_file = "examples/metadata.txt"
-output_gbk = os.path.join(work_dir, "dfast_vrl.gbk")
-mss_file_prefix = "mss"
-
-
-preprocess_contigs(input_fasta, pp_work_dir, output_fasta=None, reference_fasta=None, scaffolding=scaffolding)
-
-
-run_vadr(preprocessing_result_fasta, vadr_work_dir)
-
-v2d = VADR2DDBJ(vadr_out_fasta, ftr_file)
+v2d = VADR2DDBJ(vadr_result_fasta, vadr_result_ftr)
 v2d.to_gbk(output_gbk)
-
 mss = MSS2(output_gbk, metadata_file)
 mss.convert(work_dir, mss_file_prefix)

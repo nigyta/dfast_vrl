@@ -1,3 +1,4 @@
+import os
 import subprocess
 
 def run(input_file, output_dir, vadr_model="NC_045512"):
@@ -8,4 +9,16 @@ def run(input_file, output_dir, vadr_model="NC_045512"):
     print(p.stdout)
     print(p.stderr)
     print(p.returncode)
+    vadr_result_fasta, vadr_result_ftr = get_vadr_result(output_dir)
+    return vadr_result_fasta, vadr_result_ftr
 
+def get_vadr_result(output_dir):
+    vadr_prefix = os.path.basename(output_dir)
+    vadr_result_ftr = os.path.join(output_dir, vadr_prefix + ".vadr.ftr")
+    vadr_out_fasta_pass = os.path.join(output_dir, vadr_prefix + ".vadr.pass.fa")
+    vadr_out_fasta_fail = os.path.join(output_dir, vadr_prefix + ".vadr.fail.fa")
+    vadr_result_fasta = os.path.join(output_dir, vadr_prefix + ".result.fa")
+    with open(vadr_result_fasta, "w") as f:
+        f.write(open(vadr_out_fasta_pass).read())
+        f.write(open(vadr_out_fasta_fail).read())
+    return vadr_result_fasta, vadr_result_ftr

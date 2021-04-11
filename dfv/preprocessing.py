@@ -83,13 +83,11 @@ class Preprocessing:
             self.converged = True
 
 
-    def write_output(self, output_fasta=None, scaffolding=False):
+    def write_output(self, output_fasta, scaffolding=False):
         def _sort_func(hit):
             query_id, hit_id, hsp = hit
             return hsp.sbjct_start if hsp.strand == ("Plus", "Plus") else hsp.sbjct_end
 
-        if output_fasta is None:
-            output_fasta = os.path.join(self.work_dir, "preprocessed.fa")
         hsps_sorted = sorted(self.hit_history, key=lambda hit: hit[2].sbjct_start)  # hit = tuple of (query_id, hit_id, hsp)
         sequences = []
         seq_dict = {r.id: r.seq for r in SeqIO.parse(self.query_fasta, "fasta")}
@@ -116,13 +114,16 @@ class Preprocessing:
 def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, scaffolding=False):
     if reference_fasta is None:
         reference_fasta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../refs/NC_045512.2.fasta")
+    if output_fasta is None:
+        output_fasta = os.path.join(work_dir, "preprocessed.fa")
+
     pp = Preprocessing(input_fasta, reference_fasta, work_dir)
     while not pp.converged:
         pp.make_query_and_subject()
         pp.run_blast()
         pp.parse_blast_result()
-    pp.write_output(output_fasta, scaffolding=False)
-
+    pp.write_output(output_fasta, scaffolding=scaffolding)
+    return output_fasta
 # record attrs = todo
 # alignment attrs = ['accession', 'hit_def', 'hit_id', 'hsps', 'length', 'title']
 # hsp attrs = ['align_length', 'bits', 'expect', 'frame', 'gaps', 'identities', 'match', 'num_alignments', 'positives', 'query', 'query_end', 'query_start', 'sbjct', 'sbjct_end', 'sbjct_start', 'score', 'strand']
