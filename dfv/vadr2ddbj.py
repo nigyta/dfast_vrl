@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+from logging import getLogger
 from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -11,6 +12,9 @@ from Bio.SeqIO.InsdcIO import _insdc_location_string
 from dataclasses import dataclass
 from datetime import datetime
 # Requires Biopython 1.78 and higher
+
+
+logger = getLogger(__name__)
 
 @dataclass
 class VadrFeature:
@@ -161,7 +165,7 @@ class VADR2DDBJ:
             # get /gene qualifier
             gene_features_filtered = [gf for gf in gene_features if gf.n_from <= feature.n_from <= feature.n_to <= gf.n_to and gf.seq_name == feature.seq_name]
             if len(gene_features_filtered) != 1:
-                sys.stderr.write(f"[WARNING] Cannot find gene feature for {feature.idx}:{feature.ftr_name}\n")
+                logger.warning(f"Cannot find gene feature for {feature.idx}:{feature.ftr_name}")
                 return None
             else:
                 return gene_features_filtered[0].ftr_name
@@ -199,7 +203,7 @@ class VADR2DDBJ:
         other_features = [f for f in features if f.ftr_type != "gene"]
         for feature in other_features:
             if str(feature) in appended_features:
-                sys.stderr.write(f"[info] Skipping duplicated features {feature}\n")
+                logger.info(f"Skipping duplicated features {feature}")
                 continue
             seq_feature = feature.get_seq_feature()  # Create Biopython SeqFeature object from MyFeature
             gene = _get_gene(feature, gene_features)
