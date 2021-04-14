@@ -31,22 +31,23 @@ class VadrFeature:
     ftr_name: str  # replace _ with " "  
     ftr_len: int  # col7
     ftr_idx: int  # col8
+    par_idx: str
     strand: str
-    n_from: int  # col10
-    n_to: int  # col11
-    n_instp: int # col12, int or None
+    n_from: int  # col11
+    n_to: int  # col12
+    n_instp: int # col13, int or None
     trc: str
-    five_prime_n: int  # col14 
-    three_prime_n: int  # col15
-    p_from: int  # col16, int or None
-    p_to: int  # col17, int or None
-    p_instp: int  # col18, int or None
-    p_sc: int  # col19, int or None
-    nsa: int  # col20
-    nsn: int  # col21
+    five_prime_n: int  # col15 
+    three_prime_n: int  # col16
+    p_from: int  # col17, int or None
+    p_to: int  # col18, int or None
+    p_instp: int  # col19, int or None
+    p_sc: int  # col20, int or None
+    nsa: int  # col21
+    nsn: int  # col22
     seq_coords: str
     model_coords: str
-    ftr_alerts: str  # col24 str or None
+    ftr_alerts: str  # col25 str or None
 
     @staticmethod
     def read(file_name):
@@ -54,12 +55,12 @@ class VadrFeature:
             if line.startswith("#"):
                 continue
             cols = line.strip("\n").split()
-            assert len(cols) == 25
-            for idx in [2, 7, 8, 10, 11, 14, 15, 20, 21]:
+            assert len(cols) == 26
+            for idx in [2, 7, 8, 11, 12, 15, 16, 21, 22]:
                 cols[idx] = int(cols[idx])
-            for idx in [12, 16, 17, 18, 19]:
+            for idx in [13, 17, 18, 19, 20]:
                 cols[idx] = None if cols[idx] == "-" else int(cols[idx])
-            cols[24] = None if cols[24] == "-" else cols[24]
+            cols[25] = None if cols[25] == "-" else cols[25]
             cols[6] = cols[6].replace("_", " ")
             vadr_feature = VadrFeature(*cols)
             yield vadr_feature

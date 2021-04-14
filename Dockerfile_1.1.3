@@ -3,6 +3,22 @@ FROM ubuntu:20.04
 
 # Modified from docker://staphb/vadr
 
+ENV VADR_VERSION="1.1.3"\
+  VADR_CORONA_MODELS_VERSION="1.1.3-1" \
+  LC_ALL=C \
+  VADRINSTALLDIR=/opt/vadr
+
+ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
+ VADRMODELDIR=$VADRINSTALLDIR/vadr-models \
+ VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries \
+ VADREASELDIR=$VADRINSTALLDIR/infernal/binaries \
+ VADRHMMERDIR=$VADRINSTALLDIR/hmmer/binaries \
+ VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel \
+ VADRSEQUIPDIR=$VADRINSTALLDIR/sequip \
+ VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
+
+ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB \
+ PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
 
 # metadata - optional, but highly recommended
 LABEL base.image="ubuntu:20.04"
@@ -26,26 +42,6 @@ RUN apt-get update && apt-get install -y \
  autoconf && \
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
 
-
-ENV VADR_VERSION="1.2"\
-  VADR_CORONA_MODELS_VERSION="1.2-2" \
-  LC_ALL=C \
-  VADRINSTALLDIR=/opt/vadr
-
-ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
- VADRMODELDIR=$VADRINSTALLDIR/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION} \
- VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries \
- VADREASELDIR=$VADRINSTALLDIR/infernal/binaries \
- VADRHMMERDIR=$VADRINSTALLDIR/hmmer/binaries \
- VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel \
- VADRSEQUIPDIR=$VADRINSTALLDIR/sequip \
- VADRFASTADIR=$VADRINSTALLDIR/fasta/bin \
- VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
-
-ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB \
- PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
-
-
 # install and/or setup more things. Make /data for use as a working dir
 RUN mkdir -p ${VADRINSTALLDIR} && \
  cd ${VADRINSTALLDIR} &&\
@@ -53,12 +49,10 @@ RUN mkdir -p ${VADRINSTALLDIR} && \
  bash vadr-install.sh linux
 
 # install the latest corona virus models
-# RUN wget -O vadr-models-sarscov2.tar.gz https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/c oronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
-
-RUN cd ${VADRINSTALLDIR} && \
- wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_CORONA_MODELS_VERSION}/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
- tar -xf vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
- rm -f vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz
+RUN wget -O vadr-models-corona.tar.gz https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/coronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-corona.tar.gz && \
+ cp -n /vadr-models-corona-${VADR_CORONA_MODELS_VERSION}/* ${VADRMODELDIR} && \
+ rm -rf /vadr-models-corona*
 
 RUN apt-get install -y python3.8 python3-pip git && \
   apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
@@ -77,5 +71,3 @@ RUN cd / && \
 WORKDIR /data
 
 RUN v-annotate.pl -h 
-
-
