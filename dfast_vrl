@@ -10,7 +10,7 @@ from dfv.vadr2ddbj import VADR2DDBJ
 from dfv.genbank2mss import MSS2
 from dfv.preprocessing import preprocess_contigs
 
-dfv_version = "0.0.3"
+dfv_version = "1.2_0.1"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
