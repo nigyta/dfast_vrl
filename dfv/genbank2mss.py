@@ -76,6 +76,51 @@ class MSS2():
 
     def createTSV(self, outputFileName):
 
+        def render_feature_and_qualifiers(feature, rec_length):
+            ret_feature = []
+            for qualifier, value in feature.qualifiers.items():
+                if feature.type == "assembly_gap" and qualifier == "estimated_length":
+                    value = ["known"]
+                if qualifier == "locus_tag" and self.locusTagPrefix:
+                    value[0] = self.locusTagPrefix + "_" + value[0].split("_")[-1]
+                elif qualifier == "transl_except":
+                    transl_except_val = value[0]
+                    if "complement" in transl_except_val:
+                        value[0] = transl_except_val.replace("complement(", "").replace("),", ",")
+                if qualifier not in ['translation', 'note', 'inference', 'EC_number', "ID"]:
+                    ret_feature.append(["", "", "", qualifier, value[0]])
+            for value in feature.qualifiers.get("inference", []):
+                if "MBGD:" in value:
+                    continue
+                ret_feature.append(["", "", "", "inference", value])
+            pseudo_flags = [None, None]  # internal stop codon, frameshift
+            for value in feature.qualifiers.get("note", []):
+                if value.startswith("MBGD"):
+                    continue
+                if value.endswith("]"):
+                    if ", Eval:" in value:
+                        continue
+                if "_" in value and " " not in value:
+                    prefix, tag = value.split("_", 1)
+                    if tag.isdigit():
+                        continue
+                if "internal stop codon" in value:
+                    pseudo_flags[0] = "internal stop codon"
+                    continue
+                if "frameshifted;" in value:
+                    pseudo_flags[1] = "frameshift"
+                    continue
+                value = value.replace("  ", " ")
+                ret_feature.append(["", "", "", "note", value])
+            pseudo_flags = "/".join([x for x in pseudo_flags if x])
+            if pseudo_flags:
+                ret_feature.append(["", "", "", "note", "possible pseudo due to " + pseudo_flags])
+
+            if len(ret_feature) == 0:  # Add row with empty values in col4 and col5 for features without any qualifier
+                ret_feature.append(["", "", "", "", ""])
+            ret_feature[0][1] = feature.type
+            ret_feature[0][2] = _insdc_location_string(feature.location, rec_length)
+            return ret_feature
 
         def renderOtherFeatures(record):
             ret = []
@@ -83,53 +128,8 @@ class MSS2():
             for feature in record.features:
                 if feature.type in ['source', 'gene']:
                     continue
-
-
-                firstQualifier = True
-                for qualifier, value in feature.qualifiers.items():
-                    if feature.type == "assembly_gap" and qualifier == "estimated_length":
-                        value = ["known"]
-                    if qualifier == "locus_tag" and self.locusTagPrefix:
-                        value[0] = self.locusTagPrefix + "_" + value[0].split("_")[-1]
-                    elif qualifier == "transl_except":
-                        transl_except_val = value[0]
-                        if "complement" in transl_except_val:
-                            value[0] = transl_except_val.replace("complement(", "").replace("),", ",")
-                    if qualifier not in ['translation', 'note', 'inference', 'EC_number']:
-                        if firstQualifier:
-                            ret.append(["", feature.type, _insdc_location_string(feature.location, rec_length), qualifier, value[0]])
-                            firstQualifier = False
-                        else:
-                            ret.append(["", "", "", qualifier, value[0]])
-                for value in feature.qualifiers.get("inference", []):
-                    if "MBGD:" in value:
-                        continue
-                    ret.append(["", "", "", "inference", value])
-                pseudo_flags = [None, None]  # internal stop codon, frameshift
-                for value in feature.qualifiers.get("note", []):
-                    if value.startswith("MBGD"):
-                        continue
-                    if value.endswith("]"):
-                        if ", Eval:" in value:
-                            continue
-                    if "_" in value and " " not in value:
-                        prefix, tag = value.split("_", 1)
-                        if tag.isdigit():
-                            continue
-                    if "internal stop codon" in value:
-                        pseudo_flags[0] = "internal stop codon"
-                        continue
-                    if "frameshifted;" in value:
-                        pseudo_flags[1] = "frameshift"
-                        continue
-                    value = value.replace("  ", " ")
-                    ret.append(["", "", "", "note", value])
-                pseudo_flags = "/".join([x for x in pseudo_flags if x])
-                if pseudo_flags:
-                    ret.append(["", "", "", "note", "possible pseudo due to " + pseudo_flags])
-
-                if len(feature.qualifiers) == 0:  # Add row with empty values in col4 and col5 for features without any qualifier
-                    ret.append(["", feature.type, _insdc_location_string(feature.location, rec_length), "", ""])
+                else:
+                    ret += render_feature_and_qualifiers(feature, rec_length)
             return ret
 
         ret = []

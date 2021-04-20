@@ -4,13 +4,16 @@ import os
 import sys
 import shutil
 import logging
+import json
 from argparse import ArgumentParser
 from dfv.vadr import run as run_vadr
-from dfv.vadr2ddbj import VADR2DDBJ
+from dfv.vadr2ddbj import convert_vadr_to_gbk
 from dfv.genbank2mss import MSS2
 from dfv.preprocessing import preprocess_contigs
+# from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2_0.1"
+dfv_version = "1.2-0.2"
+print(__name__)
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -39,7 +42,12 @@ def parse_args():
         default="OUT"
     )
     parser.add_argument(
-        '--enable_scaffolding',
+        '--skip_preprocessing', '-sp',
+        action='store_true',
+        help='Skip preprocessing step and run VADR using the original FASTA.'
+    )
+    parser.add_argument(
+        '--enable_scaffolding', '-es',
         action='store_true',
         help='Fill gaps between contigs with runs of Ns of estimated length'
     )
@@ -65,37 +73,7 @@ if args.input_fasta is None:
     sys.stderr.write("DFAST_VRL: error: Query FASTA is not specified. Aborted.\n")
     exit(1)
 
-def get_logger(name=None, debug=False):
-    if debug:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
-    logging.basicConfig(
-        format="[%(asctime)s] [%(levelname)s] %(message)s",
-        level=log_level,
-        stream=sys.stdout) 
-           
-    # formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(message)s")
-    logger = logging.getLogger(name)
-    # handler = logging.StreamHandler(stream=sys.stdout)
-    # handler.setLevel(log_level)  # INFO or DEBUG
-    # handler.setFormatter(formatter)
-    # logger.addHandler(handler)
-    # if config.LOG_FILE and not config.ADMIN:
-    #     log_file = os.path.join(config.OUT_DIR, config.LOG_FILE)
-    #     fh = FileHandler(log_file, mode="a", encoding="utf-8", delay=True)
-    #     fh.setLevel(log_level)
-    #     fh.setFormatter(formatter)
-    #     logger.addHandler(fh)
-    # logger.setLevel(log_level)  # INFO or DEBUG
-    return logger
-
-logger = get_logger(name=__name__, debug=args.debug)
-
-# Prepare working directories
 work_dir = args.out_dir
-pp_work_dir = os.path.join(work_dir, "preprocessing")
-vadr_work_dir = os.path.join(work_dir, "vadr")
 if os.path.exists(work_dir) and not args.force:
     if not args.force:
         sys.stderr.write("DFAST_VRL: error: Output directory already exists. Use '--force' to overwrite.\n")
@@ -103,15 +81,41 @@ if os.path.exists(work_dir) and not args.force:
 else:
     os.makedirs(work_dir, exist_ok=True)
 
+def get_logger(name=None, debug=False):
+    if debug:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
+
+    logger = logging.getLogger(__name__)
+    sh = logging.StreamHandler(stream=sys.stdout)
+    log_file = os.path.join(work_dir, "dfast_vrl.log")
+    fh = logging.FileHandler(log_file, mode="w", encoding="utf-8", delay=True)
+
+    logging.basicConfig(
+        format="[%(asctime)s] [%(levelname)s] %(message)s",
+        level=log_level,
+        handlers=[sh, fh]) 
+    logger = logging.getLogger(__name__)
+    return logger
+
+logger = get_logger(name=__name__, debug=args.debug)
+
+logger.info(f"DFAST_VRL pipeline started. (version {dfv_version})")
+logger.info(f"Results will be generated in {work_dir}")
+logger.debug(f"Debug mode enabled.")  # Will be emitted if debug is true
+
+# Prepare sub-working directories
+pp_work_dir = os.path.join(work_dir, "preprocessing")
+vadr_work_dir = os.path.join(work_dir, "vadr")
 
 
 # Execution
 ##1. Preprocessing
-preprocessing_result_fasta = preprocess_contigs(args.input_fasta, pp_work_dir, 
-    output_fasta=None, reference_fasta=None, scaffolding=args.enable_scaffolding)
+preprocessing_result_fasta, pp_report = preprocess_contigs(args.input_fasta, pp_work_dir, 
+    output_fasta=None, reference_fasta=None, scaffolding=args.enable_scaffolding, skip_preprocessing=args.skip_preprocessing)
 
 ##2. Run VADR
-logging.info("Running VADR")
 vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_work_dir)
 
 
@@ -122,12 +126,45 @@ metadata_file_copy = os.path.join(work_dir, "metadata.txt")
 if args.metadata_file is None:
     # Create dummy metadata file
     with open(metadata_file_copy, "w") as f:
-        f.write("projectType\tvrl")
+        f.write("projectType\tvrl\n")
 else:
     shutil.copy(args.metadata_file, metadata_file_copy)
 
-v2d = VADR2DDBJ(vadr_result_fasta, vadr_result_ftr)
-v2d.to_gbk(output_gbk)
+output_gbk, vadr_report = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk)
+
+
+def update_metadata_file(metadata_file, seq_status, mol_type="RNA"):
+    lines = open(metadata_file).readlines()
+    ret = ""
+    for line in lines:
+        key, value = line.strip("\n").split("\t", 1)
+        if not (key in ["ff_definition", "seqStatus"]):
+            ret += line
+    if seq_status == "complete":
+        ret += f"seqStatus\t{seq_status}\n"
+        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, complete genome\n"
+    elif seq_status == "nearly complete":
+        ret += f"seqStatus\t{seq_status}\n"
+        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, nearly complete genome\n"
+    elif seq_status == "draft":
+        ret += f"seqStatus\t{seq_status}\n"
+        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, draft genome, @@[entry]@@\n"
+    else:
+        raise AssertionError
+    with open(metadata_file, "w") as f:
+        f.write(ret)
+
+seq_status = vadr_report["vadr"].get("seq_status", "")
+update_metadata_file(metadata_file_copy, seq_status, mol_type="RNA")
+
 mss = MSS2(output_gbk, metadata_file_copy)
 mss.convert(work_dir, mss_file_prefix)
+
+dvr_report = {**pp_report, **vadr_report}
+
+out_report_file = os.path.join(work_dir, "dfv_report.json")
+logger.info(f"Writing report json to {out_report_file}")
+with open(out_report_file, "w") as f:
+    json.dump(dvr_report, f, indent=4)
 logging.info("DFAST_VRL completed")
+

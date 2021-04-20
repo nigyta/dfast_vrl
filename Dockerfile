@@ -67,7 +67,7 @@ RUN apt-get install -y python3.8 python3-pip git && \
   ln -s python3.8 python && \
   ln -s pip3 pip
 
-ARG UPDATE_ME_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+ARG UPDATE_ME_TO_DISABLE_CACHE_BELOW_THIS_LINE=3
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \

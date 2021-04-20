@@ -1,12 +1,13 @@
 import os
 import sys
 import io
+import json
 from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
 
-from logging import getLogger
-logger = getLogger(__name__)
+import logging
+logger = logging.getLogger(__name__)
 
 
 class Preprocessing:
@@ -14,15 +15,21 @@ class Preprocessing:
         self.query_fasta = query_fasta
         self.subject_fasta = subject_fasta
         self.work_dir = work_dir
-        self.round = 0
+        self.round = 1
         self.hit_history = []
+        self.report = {}
         self.converged = False
         if not os.path.exists(self.work_dir):
             os.makedirs(self.work_dir, exist_ok=True)
+        logger.info("Quality check and preprocessing started.")
+        logger.info(f"Query: {os.path.basename(self.query_fasta)}")
+        logger.info(f"Reference: {os.path.basename(self.subject_fasta)}")
 
-    def get_current_files(self):
-        current_query = os.path.join(self.work_dir, f"query_{self.round}.fa")
-        current_subject = os.path.join(self.work_dir, f"subject_{self.round}.fa")
+    def get_fasta_files(self, round=None):
+        if round is None:
+            round = self.round
+        current_query = os.path.join(self.work_dir, f"query_{round}.fa")
+        current_subject = os.path.join(self.work_dir, f"subject_{round}.fa")
         return current_query, current_subject
 
     def get_blast_out(self):
@@ -42,7 +49,7 @@ class Preprocessing:
                     seq = seq[:start] + "N" * (end - start) + seq[end:]
                     seq_dict[hit_id] = seq
 
-        current_query, current_subject = self.get_current_files()
+        current_query, current_subject = self.get_fasta_files()
         with open(current_query, "w") as f:
             seq_dict = {r.id: str(r.seq) for r in SeqIO.parse(self.query_fasta, "fasta")}
             _mask_sequence(seq_dict, self.hit_history, target="query")
@@ -55,7 +62,7 @@ class Preprocessing:
                 f.write(f">{seq_id}\n{seq}\n")
 
     def run_blast(self):
-        current_query, current_subject = self.get_current_files()
+        current_query, current_subject = self.get_fasta_files()
         blast_out = self.get_blast_out()
         out, err = NcbiblastnCommandline(query=current_query, subject=current_subject, out=blast_out, evalue=1e-10, outfmt=5, task="blastn")()
 
@@ -70,16 +77,16 @@ class Preprocessing:
         hsps = sorted(hsps, key=lambda hit: hit[2].score, reverse=True)
         if hsps:
             query_id, hit_id, top_hit = hsps[0]
-            print(f"---- Round {self.round}")
-            print(query_id, hit_id)
-            print(top_hit)
-            print(f"Identity={top_hit.identities}/{top_hit.align_length}={100*top_hit.identities/top_hit.align_length:.2f}%")
-            # print("qstart,qend,sstart,send", top_hit.query_start, top_hit.query_end, top_hit.sbjct_start, top_hit.strand)
+            logger.info(f"-----   Round {self.round}   -----")
+            logger.info(f"Query: {query_id}, Subject: {hit_id}")
+            logger.info(f"Identity={top_hit.identities}/{top_hit.align_length}={100*top_hit.identities/top_hit.align_length:.2f}%")
+            # logger.debug(f"qstart, qend, sstart, send, strand : {top_hit.query_start}, {top_hit.query_end}, {top_hit.sbjct_start},  {top_hit.sbjct_end}, {top_hit.strand}")
+            logger.info(f"\n{top_hit}\n")
             assert top_hit.query_start < top_hit.query_end
             self.hit_history.append(hsps[0])
             self.round += 1
         else:
-            print(f"Converged at round-{self.round}!")
+            logger.info(f"Preprocessing completed at Round {self.round}.")
             self.converged = True
 
 
@@ -88,6 +95,8 @@ class Preprocessing:
             query_id, hit_id, hsp = hit
             return hsp.sbjct_start if hsp.strand == ("Plus", "Plus") else hsp.sbjct_end
 
+        if scaffolding:
+            logger.warning("Scaffolding is enabled. Contigs will be concatenated with runs of Ns of estimated length.")
         hsps_sorted = sorted(self.hit_history, key=lambda hit: hit[2].sbjct_start)  # hit = tuple of (query_id, hit_id, hsp)
         sequences = []
         seq_dict = {r.id: r.seq for r in SeqIO.parse(self.query_fasta, "fasta")}
@@ -100,10 +109,10 @@ class Preprocessing:
             if idx < len(hsps_sorted) and scaffolding:
                 _, __, next_hsp = hsps_sorted[idx]
                 length = abs(next_hsp.sbjct_start - hsp.sbjct_end) - 1
+                logger.warning(f'Contig{idx} and contig{idx+1} has been concatenated with a gap of {length} nt length.')
                 sequences.append("N" * length)
         with open(output_fasta, "w") as f:
             logger.info(f"Writing preprocessed FASTA file to {output_fasta}")
-            print(f"Writing preprocessed FASTA file to {output_fasta}")
             if scaffolding:
                 seq = "".join(sequences)
                 f.write(f">sequence\n{seq}")
@@ -111,7 +120,42 @@ class Preprocessing:
                 for idx, seq in enumerate(sequences, 1):
                     f.write(f">sequence{idx}\n{seq}\n")
 
-def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, scaffolding=False):
+    def set_report(self):
+        def _get_length(fasta_file):
+            R = list(SeqIO.parse(fasta_file, "fasta"))
+            length = sum([len(r) for r in R])
+            return length
+
+        current_query, current_subject = self.get_fasta_files()
+        query_length = _get_length(current_query)        
+        sbjct_length = _get_length(current_subject)
+        sum_aligned, sum_identities = 0, 0
+        for query_id, hit_id, hsp in self.hit_history:
+            sum_aligned += hsp.align_length
+            sum_identities += hsp.identities
+        self.report = {
+            "query_length": query_length,
+            "sbjct_length": sbjct_length,
+            "aligned_length": sum_aligned,
+            "matched_nucleotides": sum_identities,
+            "matched_fragments": len(self.hit_history),
+            "average_identity": sum_identities / sum_identities * 100,
+            "query_coverage": sum_aligned / query_length * 100,
+            "sbjct_coverage": sum_aligned / sbjct_length * 100,
+        }
+
+    def write_report(self, output_file=None, format="json"):
+        if format == "json":
+            if output_file is None:
+                output_file = os.path.join(self.work_dir, "preprocessing_report.json")
+            with open(output_file, "w") as f:
+                logger.info(f"Writing quality control and preprocessing report file to {output_file}")
+                json.dump({"preprocessing": self.report}, f, indent=4)
+        else:
+            raise NotImplemented
+
+
+def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, skip_preprocessing=False, scaffolding=False):
     if reference_fasta is None:
         reference_fasta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../refs/NC_045512.2.fasta")
     if output_fasta is None:
@@ -122,12 +166,26 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
         pp.make_query_and_subject()
         pp.run_blast()
         pp.parse_blast_result()
-    pp.write_output(output_fasta, scaffolding=scaffolding)
-    return output_fasta
+    pp.set_report()
+    pp.write_report()
+    logger.info(json.dumps(pp.report, indent=4))
+    if skip_preprocessing:
+        pp.write_output(output_fasta, scaffolding=scaffolding)
+        logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
+        return input_fasta, pp.report
+    else:
+        pp.write_output(output_fasta, scaffolding=scaffolding)
+        return output_fasta, {"preprocessing": pp.report}
+
 # record attrs = todo
 # alignment attrs = ['accession', 'hit_def', 'hit_id', 'hsps', 'length', 'title']
 # hsp attrs = ['align_length', 'bits', 'expect', 'frame', 'gaps', 'identities', 'match', 'num_alignments', 'positives', 'query', 'query_end', 'query_start', 'sbjct', 'sbjct_end', 'sbjct_start', 'score', 'strand']
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+    # logger.setLevel(logging.DEBUG)
     input_fasta = sys.argv[1]
-    preprocess_contigs(input_fasta)
+    output_dir = sys.argv[2]
+    output_fasta, report = preprocess_contigs(input_fasta, output_dir, skip_preprocessiing=True, scaffolding=True)
+    print("output_fasta", output_fasta)
+    print(report)
