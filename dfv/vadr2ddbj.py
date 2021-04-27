@@ -14,14 +14,14 @@ from dataclasses import dataclass
 from datetime import datetime
 if __name__ == '__main__':
     from reference_models import get_reference_model
-    from warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
+    from dfv_warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
         MORE_THAN_ONE_MODEL_USED, create_VADR_warning, VADR_ANNOTATION_FAILED, \
-        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES
+        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME
 else:
     from .reference_models import get_reference_model
-    from .warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
+    from .dfv_warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
         MORE_THAN_ONE_MODEL_USED, create_VADR_warning, VADR_ANNOTATION_FAILED, \
-        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES
+        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME
 
 # Requires Biopython 1.78 and higher
 
@@ -96,13 +96,19 @@ class VadrFeature:
         else:
             qualifiers = {"product": [self.ftr_name]}
         if self.ftr_type == "CDS":
-            # set codon start (assuming strand is +), TODO: convert to misc_feature if both ends are ambiguous
-            if isinstance(location.start, BeforePosition) and isinstance(location.end, ExactPosition):
-                length = location.end - location.start
-                codon_start = (length % 3) + 1
-                qualifiers["codon_start"] = [codon_start]
+            if self.n_instp:
+                self.ftr_type = "misc_feature"
+                del qualifiers["product"]
+                note = [f"similar to {self.ftr_name}", f"internal stop at {self.n_instp}"]
+                qualifiers["note"] = note
             else:
-                qualifiers["codon_start"] = [1]
+                # set codon start (assuming strand is +), TODO: convert to misc_feature if both ends are ambiguous
+                if isinstance(location.start, BeforePosition) and isinstance(location.end, ExactPosition):
+                    length = location.end - location.start
+                    codon_start = (length % 3) + 1
+                    qualifiers["codon_start"] = [codon_start]
+                else:
+                    qualifiers["codon_start"] = [1]
         feature = SeqFeature(location=location, type=self.ftr_type, strand=location.strand, id=self.idx, qualifiers=qualifiers)
         return feature
 
@@ -114,14 +120,14 @@ class VadrFeature:
 
 class VADR2DDBJ:
     def __init__(self, fasta_file, vadr_dir, metadata=None, 
-                 organism="Severe acute respiratory syndrome coronavirus 2", isolate="(isolate)", complete=True,
+                 organism="Severe acute respiratory syndrome coronavirus 2", isolate=None, complete=True,
                  mol_type="genomic RNA", transl_table=1, topology="linear", linkage_evidence="align genus"):
         
         self.seq_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
         self.vadr_dir = vadr_dir
         self.metadata = metadata
         self.organism = organism
-        self.isolate = isolate
+        self.isolate = isolate or "(isolate)"
         self.mol_type = mol_type
         self.transl_table = transl_table
         self.complete = complete
@@ -303,17 +309,25 @@ class VADR2DDBJ:
                         num_cds_partial += 1
             cds_completeness = f"{num_cds_intact} / {num_cds_partial} / {num_cds_multi} / {num_cds_missing} [intact/partial/multi/missing]"
             cds_completeness_percentage = 100 * num_cds_intact / num_total_cds
-
-            if num_seqs == 1 and has_gap == False and int(cds_completeness_percentage) == 100 and query_non_N_length / reference_length > 0.9:
+            gap_ratio = (reference_length - query_non_N_length) / reference_length * 100
+            if num_seqs == 1 and has_gap == False and int(cds_completeness_percentage) == 100 and gap_ratio < 10:
                 seq_status = "complete"
-            elif num_seqs == 1 and cds_completeness_percentage > 80 and query_non_N_length / reference_length > 0.8:
+            elif num_seqs == 1 and cds_completeness_percentage > 80 and gap_ratio < 20:
                 seq_status = "nearly complete"
+                INFO_NEARLY_COMPLETE_GENOME.add(f"CDS completeness: {cds_completeness_percentage:.2f}%")
+                INFO_NEARLY_COMPLETE_GENOME.add(f"Gap ratio: {gap_ratio:.2f}%")
+                self.warnings.append(INFO_NEARLY_COMPLETE_GENOME)
             else:
                 seq_status = "draft"
+                INFO_DRAFT_GENOME.add(f"CDS completeness: {cds_completeness_percentage:.2f}%")
+                INFO_DRAFT_GENOME.add(f"Gap ratio: {gap_ratio:.2f}%")
+                self.warnings.append(INFO_DRAFT_GENOME)
         else:
             cds_completeness = "na"
             cds_completeness_percentage = "na"
             seq_status = "draft"
+            self.warnings.append(INFO_DRAFT_GENOME)
+
         self.report.update({"number_of_sequence": num_seqs,
                 "has_assembly_gap": has_gap,
                 "cds_completeness": cds_completeness, 
@@ -381,7 +395,7 @@ class VADR2DDBJ:
                     alerts.append(VADR_WARNING)
             return alerts
 
-        warnings = []
+        # warnings = []
 
         # check number of models
         models = get_vadr_models(self.vadr_dir)
@@ -434,7 +448,7 @@ class VADR2DDBJ:
             "fragmented_cds": fragmented,
             "partial_cds": partial,
             "missing_cds": missing,
-            "warnings": [warning.to_tuple() for warning in self.warnings]
+            # "warnings": [warning.to_tuple() for warning in self.warnings]
         })
         
         report_json_string = json.dumps(self.report, indent=4)
@@ -492,29 +506,29 @@ def get_vadr_models(vadr_dir):
             models.append(cols[1])
     return models
 
-def convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk):
-    v2d = VADR2DDBJ(vadr_result_fasta, vadr_work_dir)
+def convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate):
+    v2d = VADR2DDBJ(vadr_result_fasta, vadr_work_dir, isolate=isolate)
     v2d.to_gbk(output_gbk)
     report_file = os.path.join(vadr_work_dir, "vadr.report.json")
     v2d.make_report(report_file)
-    return output_gbk, {"vadr": v2d.report}
+    return output_gbk, {"vadr": v2d.report}, v2d.warnings
 
 
 
 
 if __name__ == '__main__':
     
-    # ftr_file = "VADR_MW850590/VADR_MW850590.vadr.ftr"
-    # input_fasta = "VADR_MW850590/VADR_MW850590.vadr.pass.fa"
-    # ftr_file = "vadr_with_truncated/1_vadr_finished.vadr.ftr"
-    # input_fasta = "vadr_with_truncated/1_vadr_finished.vadr.pass.fa"
     ftr_file = "test/vadr/vadr.vadr.ftr"
     input_fasta = "../meta_vry_result_rc.fa"
     output_gbk = "test/test.vadr.gbk"
-    # for feature in VadrFeature.read(input_file):
-    #     print(feature)
-    #     print(feature.get_feature_location())
-    v2d = VADR2DDBJ(input_fasta, ftr_file)
+
+    ftr_file = sys.argv[1]
+    vadr_dir = sys.argv[2]
+    output_gbk = sys.argv[3]
+
+
+
+    v2d = VADR2DDBJ(input_fasta, vadr_dir)
     v2d.to_gbk(output_gbk)
     v2d.make_report()
     print(vsd.warnings)

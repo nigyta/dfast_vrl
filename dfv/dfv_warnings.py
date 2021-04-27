@@ -30,6 +30,24 @@ class DFV_WARNING:
     def to_tuple(self):
         return (self.level, self.name, self.message, self.targets)
 
+INFO_QUERY_MODIFIED = DFV_WARNING(level="INFO", 
+                                     name="INFO_QUERY_MODIFIED", 
+                                     message="The query genome has been modified during the preprocessing step.")
+
+INFO_SCAFFOLDING_ENABLED = DFV_WARNING(level="INFO", 
+                                     name="INFO_SCAFFOLDING_ENABLED", 
+                                     message="Scaffolding is enabled. Contigs has been concatenated with runs of Ns of estimated length.")
+
+
+INFO_DRAFT_GENOME = DFV_WARNING(level="INFO", 
+                                     name="INFO_DRAFT_GENOME", 
+                                     message="The query genome has been classified as a draft genome.")
+
+INFO_NEARLY_COMPLETE_GENOME = DFV_WARNING(level="INFO", 
+                                     name="INFO_NEARLY_COMPLETE_GENOME", 
+                                     message="The query genome has been classified as a nearly complete genome.")
+
+
 VADR_ANNOTATION_FAILED = DFV_WARNING(level="CRITICAL", 
                                      name="VADR_ANNOTATION_FAILED", 
                                      message="No biological feature annotated by VADR. Please check the VADR log file carefully.")
@@ -60,7 +78,7 @@ DUPLICATED_FEATURES = DFV_WARNING(level="WARNING",
                                         message="Biological features are annotated more than once.")
 
 FRAGMENTED_FEATURES = DFV_WARNING(level="WARNING", 
-                                        name="DUPLICATED_FEATURES", 
+                                        name="FRAGMENTED_FEATURES", 
                                         message="Biological features are split into two or more fragments.")
 
 INCOMPLETE_GENOME_WARNING = DFV_WARNING(level="WARNING", 
@@ -72,7 +90,7 @@ def create_VADR_warning(fail, alert_desc, alert_detail):
         level = "CRITICAL"
     else:
         level = "INFO"
-    return DFV_WARNING(level=level, name=alert_desc, message=alert_detail)
+    return DFV_WARNING(level=level, name="VADR:" + alert_desc, message=alert_detail)
 
 if __name__ == '__main__':
 

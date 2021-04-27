@@ -1,5 +1,5 @@
 organism	Severe acute respiratory syndrome coronavirus 2
-isolate	isolate XXXXX
+isolate	hCov-19/Japan/SZ-NIG-12345/2021
 isolation_source	pharyngeal swab
 host	Homo sapiens
 source_country	Japan: Shizuoka
@@ -10,15 +10,15 @@ consrtm	Shizuoka Pref. Consortium for Covid19
 contact	Masanori Arita
 email	mss@ddbj.nig.ac.jp
 phone	81-000-000-000
-institute	DNA Data Bank of Japan
-department	National Institute of Genetics
+institute	National Institute of Genetics
+department	DNA Data Bank of Japan
 url	https://ddbj.nig.ac.jp
 street	1111 Yata
 city	Mishima
 state	Shizuoka
 country	Japan
 ZIP	411-8540
-assemblyMethod	META_VRY v0.0.1
+assemblyMethod	META_VRL v0.0.1
 sequencingTechnology	Illumina MiSeq
 coverage	2000x
 reference	Complete genome sequence of Severe acute respiratory syndrome coronavirus 2 isolate XXXXXX

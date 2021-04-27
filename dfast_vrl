@@ -9,10 +9,11 @@ from argparse import ArgumentParser
 from dfv.vadr import run as run_vadr
 from dfv.vadr2ddbj import convert_vadr_to_gbk
 from dfv.genbank2mss import MSS2
+from dfv.genbank2fasta import gbk2fasta
 from dfv.preprocessing import preprocess_contigs
 # from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2-0.2"
+dfv_version = "1.2-0.3"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -21,8 +22,8 @@ def parse_args():
         "-i",
         "--input_fasta",
         type=str,
-        # required=True,
-        help="Input FASTA file (raw or gzipped) [required]",
+        required=True,
+        help="Input FASTA file (raw or gzipped) [Required]",
         metavar="PATH"
     )
     parser.add_argument(
@@ -39,6 +40,12 @@ def parse_args():
         help="Output directory (default: OUT)",
         metavar="PATH",
         default="OUT"
+    )
+    parser.add_argument(
+        '--isolate',
+        type=str,
+        help='Isolate name [Optional, but recommendable to specify a unique value to distinguish the sample]',
+        metavar="STR"
     )
     parser.add_argument(
         '--skip_preprocessing', '-sp',
@@ -111,7 +118,7 @@ vadr_work_dir = os.path.join(work_dir, "vadr")
 
 # Execution
 ##1. Preprocessing
-preprocessing_result_fasta, pp_report = preprocess_contigs(args.input_fasta, pp_work_dir, 
+preprocessing_result_fasta, pp_report, pp_warnings = preprocess_contigs(args.input_fasta, pp_work_dir, 
     output_fasta=None, reference_fasta=None, scaffolding=args.enable_scaffolding, skip_preprocessing=args.skip_preprocessing)
 
 ##2. Run VADR
@@ -120,7 +127,8 @@ vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_w
 
 ##3. Format conversion
 output_gbk = os.path.join(work_dir, "annotation.gbk")
-mss_file_prefix = "DDBJ"
+output_fasta = os.path.join(work_dir, "genome.fna")
+
 metadata_file_copy = os.path.join(work_dir, "metadata.txt")
 if args.metadata_file is None:
     # Create dummy metadata file
@@ -129,7 +137,25 @@ if args.metadata_file is None:
 else:
     shutil.copy(args.metadata_file, metadata_file_copy)
 
-output_gbk, vadr_report = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk)
+def get_isolate(metadata_file, args):
+    isolate_from_metadata_file = None
+    for line in open(metadata_file):
+        if line.startswith("isolate"):
+            isolate_from_metadata_file = line.strip("\n").split("\t")[1]
+    if args.isolate:
+        isolate = args.isolate
+        mss_file_prefix = isolate.replace("/", "_")
+    elif isolate_from_metadata_file:
+        isolate = isolate_from_metadata_file
+        mss_file_prefix = isolate.replace("/", "_")
+
+    else:
+        isolate = "isolate_name_unspecified"
+        mss_file_prefix = "DDBJ"
+    return isolate, mss_file_prefix
+
+isolate, mss_file_prefix = get_isolate(metadata_file_copy, args)
+output_gbk, vadr_report, vadr_warnings = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate)
 
 
 def update_metadata_file(metadata_file, seq_status, mol_type="RNA"):
@@ -158,12 +184,16 @@ update_metadata_file(metadata_file_copy, seq_status, mol_type="RNA")
 
 mss = MSS2(output_gbk, metadata_file_copy)
 mss.convert(work_dir, mss_file_prefix)
+gbk2fasta(output_gbk, output_fasta)
 
-dvr_report = {**pp_report, **vadr_report}
+warnings = [warning.to_tuple() for warning in pp_warnings + vadr_warnings]
+warnings = {"warnings": warnings}
+dvr_report = {**pp_report, **vadr_report, **warnings}
 
 out_report_file = os.path.join(work_dir, "dfv_report.json")
 logger.info(f"Writing report json to {out_report_file}")
 with open(out_report_file, "w") as f:
     json.dump(dvr_report, f, indent=4)
+logger.info(f"DFAST_VRL warnings:\n{json.dumps(warnings, indent=4)}\n")
 logging.info("DFAST_VRL completed")
 

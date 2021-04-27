@@ -5,20 +5,28 @@ import json
 from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
+if __name__ == '__main__':
+    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED
+else:
+    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED
+
+
 
 import logging
 logger = logging.getLogger(__name__)
 
 
 class Preprocessing:
-    def __init__(self, query_fasta, subject_fasta, work_dir):
+    def __init__(self, query_fasta, subject_fasta, work_dir, skip_preprocessing=False):
         self.query_fasta = query_fasta
         self.subject_fasta = subject_fasta
         self.work_dir = work_dir
         self.round = 1
         self.hit_history = []
         self.report = {}
+        self.warnings = []
         self.converged = False
+        self.skip_preprocessing = skip_preprocessing
         if not os.path.exists(self.work_dir):
             os.makedirs(self.work_dir, exist_ok=True)
         logger.info("Quality check and preprocessing started.")
@@ -95,8 +103,9 @@ class Preprocessing:
             query_id, hit_id, hsp = hit
             return hsp.sbjct_start if hsp.strand == ("Plus", "Plus") else hsp.sbjct_end
 
-        if scaffolding:
+        if scaffolding and len(self.hit_history) > 1:
             logger.warning("Scaffolding is enabled. Contigs will be concatenated with runs of Ns of estimated length.")
+            self.warnings.append(INFO_SCAFFOLDING_ENABLED)
         hsps_sorted = sorted(self.hit_history, key=lambda hit: hit[2].sbjct_start)  # hit = tuple of (query_id, hit_id, hsp)
         sequences = []
         seq_dict = {r.id: r.seq for r in SeqIO.parse(self.query_fasta, "fasta")}
@@ -124,22 +133,30 @@ class Preprocessing:
         def _get_length(fasta_file):
             R = list(SeqIO.parse(fasta_file, "fasta"))
             length = sum([len(r) for r in R])
-            return length
+            num_seq = len(R)
+            return length, num_seq
 
         current_query, current_subject = self.get_fasta_files()
-        query_length = _get_length(current_query)        
-        sbjct_length = _get_length(current_subject)
+        query_length, query_num = _get_length(current_query)        
+        sbjct_length, subject_num = _get_length(current_subject)
+
         sum_aligned, sum_identities = 0, 0
         for query_id, hit_id, hsp in self.hit_history:
             sum_aligned += hsp.align_length
             sum_identities += hsp.identities
+
+        if sum_aligned != query_length or query_num != len(self.hit_history):
+            INFO_QUERY_MODIFIED.add(f"Length: {query_length} --> {sum_aligned}")
+            if not self.skip_preprocessing:
+                self.warnings.append(INFO_QUERY_MODIFIED)
         self.report = {
             "query_length": query_length,
+            "query_num_sequence": query_num,
             "sbjct_length": sbjct_length,
             "aligned_length": sum_aligned,
             "matched_nucleotides": sum_identities,
             "matched_fragments": len(self.hit_history),
-            "average_identity": sum_identities / sum_identities * 100,
+            "average_identity": sum_identities / sum_aligned * 100,
             "query_coverage": sum_aligned / query_length * 100,
             "sbjct_coverage": sum_aligned / sbjct_length * 100,
         }
@@ -161,7 +178,7 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
     if output_fasta is None:
         output_fasta = os.path.join(work_dir, "preprocessed.fa")
 
-    pp = Preprocessing(input_fasta, reference_fasta, work_dir)
+    pp = Preprocessing(input_fasta, reference_fasta, work_dir, skip_preprocessing)
     while not pp.converged:
         pp.make_query_and_subject()
         pp.run_blast()
@@ -169,13 +186,16 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
     pp.set_report()
     pp.write_report()
     logger.info(json.dumps(pp.report, indent=4))
-    if skip_preprocessing:
+    if pp.skip_preprocessing:
         pp.write_output(output_fasta, scaffolding=scaffolding)
         logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
-        return input_fasta, pp.report
+        result_fasta = input_fasta
     else:
         pp.write_output(output_fasta, scaffolding=scaffolding)
-        return output_fasta, {"preprocessing": pp.report}
+        result_fasta = output_fasta
+
+
+    return result_fasta, {"preprocessing": pp.report}, pp.warnings
 
 # record attrs = todo
 # alignment attrs = ['accession', 'hit_def', 'hit_id', 'hsps', 'length', 'title']
