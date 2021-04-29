@@ -13,7 +13,7 @@ from dfv.genbank2fasta import gbk2fasta
 from dfv.preprocessing import preprocess_contigs
 # from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2-0.3"
+dfv_version = "1.2-0.4"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -138,19 +138,24 @@ else:
     shutil.copy(args.metadata_file, metadata_file_copy)
 
 def get_isolate(metadata_file, args):
-    isolate_from_metadata_file = None
+    metadata = {}
     for line in open(metadata_file):
-        if line.startswith("isolate"):
-            isolate_from_metadata_file = line.strip("\n").split("\t")[1]
+        key, value = line.strip("\n").split("\t")
+        metadata[key] = value
+    isolate_from_metadata_file = metadata.get("isolate")
     if args.isolate:
         isolate = args.isolate
         mss_file_prefix = isolate.replace("/", "_")
+        metadata["isolate"] = isolate
+        with open(metadata_file, "w") as f:
+            for key, value in metadata.items():
+                f.write(f"{key}\t{value}\n")
     elif isolate_from_metadata_file:
         isolate = isolate_from_metadata_file
         mss_file_prefix = isolate.replace("/", "_")
 
     else:
-        isolate = "isolate_name_unspecified"
+        isolate = "unspecified_isolate"
         mss_file_prefix = "DDBJ"
     return isolate, mss_file_prefix
 
