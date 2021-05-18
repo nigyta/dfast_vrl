@@ -38,6 +38,10 @@ INFO_SCAFFOLDING_ENABLED = DFV_WARNING(level="INFO",
                                      name="INFO_SCAFFOLDING_ENABLED", 
                                      message="Scaffolding is enabled. Contigs has been concatenated with runs of Ns of estimated length.")
 
+TRIM_TERMINAL_N = DFV_WARNING(level="WARNING", 
+                                     name="TRIM_TERMINAL_N", 
+                                     message="Trimmed terminal Ns in the query during the processing step.")
+
 
 INFO_DRAFT_GENOME = DFV_WARNING(level="INFO", 
                                      name="INFO_DRAFT_GENOME", 

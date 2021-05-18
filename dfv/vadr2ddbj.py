@@ -357,13 +357,14 @@ class VADR2DDBJ:
                     incomplete = True
                     note.append("too many ambiguous AA")
                 if incomplete:
-                    feature.type = "misc_feature"
-                    del feature.qualifiers["codon_start"]
-                    del feature.qualifiers["transl_table"]
-                    del feature.qualifiers["translation"]
-                    del feature.qualifiers["product"]
-                    if "ribosomal_slippage" in feature.qualifiers:
-                        del feature.qualifiers["ribosomal_slippage"]
+                    # The part below is currently disabled, but might be revived in the future
+                    # feature.type = "misc_feature"
+                    # del feature.qualifiers["codon_start"]
+                    # del feature.qualifiers["transl_table"]
+                    # del feature.qualifiers["translation"]
+                    # del feature.qualifiers["product"]
+                    # if "ribosomal_slippage" in feature.qualifiers:
+                    #     del feature.qualifiers["ribosomal_slippage"]
                     note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"
                     feature.qualifiers.setdefault("note", []).append(note)
         if len(INCOMPLETE_CDS_WARNING.targets) > 0:

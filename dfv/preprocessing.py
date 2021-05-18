@@ -6,9 +6,9 @@ from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
 if __name__ == '__main__':
-    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED
+    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N
 else:
-    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED
+    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N
 
 
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class Preprocessing:
-    def __init__(self, query_fasta, subject_fasta, work_dir, skip_preprocessing=False):
+    def __init__(self, query_fasta, subject_fasta, work_dir, modify_query_fasta=False):
         self.query_fasta = query_fasta
         self.subject_fasta = subject_fasta
         self.work_dir = work_dir
@@ -26,12 +26,33 @@ class Preprocessing:
         self.report = {}
         self.warnings = []
         self.converged = False
-        self.skip_preprocessing = skip_preprocessing
+        self.modify_query_fasta = modify_query_fasta
         if not os.path.exists(self.work_dir):
             os.makedirs(self.work_dir, exist_ok=True)
         logger.info("Quality check and preprocessing started.")
         logger.info(f"Query: {os.path.basename(self.query_fasta)}")
         logger.info(f"Reference: {os.path.basename(self.subject_fasta)}")
+
+    def trim_N_from_query(self):
+        out_fasta = os.path.join(self.work_dir, "query_N_trimmed.fa")
+        R = list(SeqIO.parse(self.query_fasta, "fasta"))
+        len_trimmed = 0
+        len_original = 0
+        str_output = ""
+        for r in R:
+            seq_id = r.id
+            seq_original = str(r.seq).upper()
+            seq_trimmed = seq_original.strip("N")
+            len_original += len(seq_original)
+            len_trimmed += len(seq_trimmed)
+            str_output += f">{seq_id}\n{seq_trimmed}\n"
+        if len_trimmed != len_original:
+            logger.warning(f"Trimmed leading/trailing Ns in the query FASTA. Length: {len_original} --> {len_trimmed}")
+            TRIM_TERMINAL_N.add(f"Length: {len_original} --> {len_trimmed}")
+            self.warnings.append(TRIM_TERMINAL_N)
+            with open(out_fasta, "w") as f:
+                f.write(str_output)
+                self.query_fasta = out_fasta
 
     def get_fasta_files(self, round=None):
         if round is None:
@@ -136,29 +157,38 @@ class Preprocessing:
             num_seq = len(R)
             return length, num_seq
 
+        def _get_aligned_length(hsp):
+            query_aligned = hsp.query_end - hsp.query_start + 1
+            sbjct_aligned = hsp.sbjct_end - hsp.sbjct_start + 1
+            return query_aligned, sbjct_aligned
+
         current_query, current_subject = self.get_fasta_files()
         query_length, query_num = _get_length(current_query)        
         sbjct_length, subject_num = _get_length(current_subject)
 
-        sum_aligned, sum_identities = 0, 0
+        sum_aligned_query, sum_aligned_sbjct, sum_identities, sum_aligned = 0, 0, 0, 0
         for query_id, hit_id, hsp in self.hit_history:
             sum_aligned += hsp.align_length
+            query_aligned, sbjct_aligned = _get_aligned_length(hsp)
+            sum_aligned_query += query_aligned
+            sum_aligned_sbjct += sbjct_aligned
             sum_identities += hsp.identities
 
-        if sum_aligned != query_length or query_num != len(self.hit_history):
-            INFO_QUERY_MODIFIED.add(f"Length: {query_length} --> {sum_aligned}")
-            if not self.skip_preprocessing:
+        if sum_aligned_query != query_length or query_num != len(self.hit_history):
+            INFO_QUERY_MODIFIED.add(f"Length: {query_length} --> {sum_aligned_query}")
+            if self.modify_query_fasta:
                 self.warnings.append(INFO_QUERY_MODIFIED)
         self.report = {
             "query_length": query_length,
             "query_num_sequence": query_num,
             "sbjct_length": sbjct_length,
-            "aligned_length": sum_aligned,
+            "query_aligned_length": sum_aligned_query,
+            "sbjct_aligned_length": sum_aligned_sbjct,
             "matched_nucleotides": sum_identities,
             "matched_fragments": len(self.hit_history),
             "average_identity": sum_identities / sum_aligned * 100,
-            "query_coverage": sum_aligned / query_length * 100,
-            "sbjct_coverage": sum_aligned / sbjct_length * 100,
+            "query_coverage": sum_aligned_query / query_length * 100,
+            "sbjct_coverage": sum_aligned_sbjct / sbjct_length * 100,
         }
 
     def write_report(self, output_file=None, format="json"):
@@ -172,13 +202,16 @@ class Preprocessing:
             raise NotImplemented
 
 
-def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, skip_preprocessing=False, scaffolding=False):
+def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, modify_query_fasta=False, disable_scaffolding=False):
     if reference_fasta is None:
         reference_fasta = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../refs/NC_045512.2.fasta")
     if output_fasta is None:
         output_fasta = os.path.join(work_dir, "preprocessed.fa")
 
-    pp = Preprocessing(input_fasta, reference_fasta, work_dir, skip_preprocessing)
+    scaffolding = not disable_scaffolding
+
+    pp = Preprocessing(input_fasta, reference_fasta, work_dir, modify_query_fasta)
+    pp.trim_N_from_query()
     while not pp.converged:
         pp.make_query_and_subject()
         pp.run_blast()
@@ -186,13 +219,14 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
     pp.set_report()
     pp.write_report()
     logger.info(json.dumps(pp.report, indent=4))
-    if pp.skip_preprocessing:
-        pp.write_output(output_fasta, scaffolding=scaffolding)
-        logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
-        result_fasta = input_fasta
-    else:
+    if pp.modify_query_fasta:
+        logger.warning("### Since 'modify_query_fasta' is enabled, original input FASTA will be modified based on the mapping result to the reference. ###")
         pp.write_output(output_fasta, scaffolding=scaffolding)
         result_fasta = output_fasta
+    else:
+        pp.write_output(output_fasta, scaffolding=scaffolding)
+        # logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
+        result_fasta = input_fasta
 
 
     return result_fasta, {"preprocessing": pp.report}, pp.warnings
@@ -206,6 +240,6 @@ if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
     input_fasta = sys.argv[1]
     output_dir = sys.argv[2]
-    output_fasta, report = preprocess_contigs(input_fasta, output_dir, skip_preprocessiing=True, scaffolding=True)
+    output_fasta, report = preprocess_contigs(input_fasta, output_dir, modify_query_fasta=True, scaffolding=True)
     print("output_fasta", output_fasta)
     print(report)

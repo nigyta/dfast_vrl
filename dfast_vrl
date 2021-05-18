@@ -13,7 +13,7 @@ from dfv.genbank2fasta import gbk2fasta
 from dfv.preprocessing import preprocess_contigs
 # from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2-0.4"
+dfv_version = "1.2-0.5"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -48,14 +48,14 @@ def parse_args():
         metavar="STR"
     )
     parser.add_argument(
-        '--skip_preprocessing', '-sp',
+        '--modify_query_fasta', '-mq',
         action='store_true',
-        help='Skip preprocessing step and run VADR using the original FASTA.'
+        help='Modify query FASTA based on the mapping result to the reference. (Extract mapped regions and discard unmapped)'
     )
     parser.add_argument(
-        '--enable_scaffolding', '-es',
+        '--disable_scaffolding', '-ds',
         action='store_true',
-        help='Fill gaps between contigs with runs of Ns of estimated length'
+        help="Disable scaffolding process based on the mapping result to the reference. Ignored when '--modify_query_fasta' is not specified."
     )
     parser.add_argument(
         '--force',
@@ -115,11 +115,10 @@ logger.debug(f"Debug mode enabled.")  # Will be emitted if debug is true
 pp_work_dir = os.path.join(work_dir, "preprocessing")
 vadr_work_dir = os.path.join(work_dir, "vadr")
 
-
 # Execution
 ##1. Preprocessing
 preprocessing_result_fasta, pp_report, pp_warnings = preprocess_contigs(args.input_fasta, pp_work_dir, 
-    output_fasta=None, reference_fasta=None, scaffolding=args.enable_scaffolding, skip_preprocessing=args.skip_preprocessing)
+    output_fasta=None, reference_fasta=None, disable_scaffolding=args.disable_scaffolding, modify_query_fasta=args.modify_query_fasta)
 
 ##2. Run VADR
 vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_work_dir)
