@@ -166,6 +166,7 @@ class VADR2DDBJ:
             seq_record.features.append(source_feature)
 
     def set_gap_features(self, len_cutoff=10):
+        num_assembly_gap = 0
         for record in self.seq_dict.values():
             startPosition = 0
             seq = str(record.seq).upper()
@@ -180,7 +181,9 @@ class VADR2DDBJ:
 
                     assert str(feature.extract(record).seq).upper() == fragment
                     record.features.append(feature)
+                    num_assembly_gap += 1
                 startPosition = endPosition
+        self.report["num_assembly_gap"] = num_assembly_gap
 
     def set_features(self, ftr_file):
         """
@@ -273,12 +276,14 @@ class VADR2DDBJ:
         has_gap = False
         for seq_record in self.seq_dict.values():
             query_length += len(seq_record)
-            query_non_N_length += len(seq_record) - str(seq_record.seq).upper().count("N")
+            query_N_length = str(seq_record.seq).upper().count("N")
+            query_non_N_length += len(seq_record) - query_N_length
             for feature in seq_record.features:
                 if feature.type == "assembly_gap":
                     has_gap = True
 
         self.report["query_length"] = query_length
+        self.report["query_N_length"] = query_N_length
         self.report["query_non_N_length"] = query_non_N_length
         logger.debug(f"Checking completeness: num_seqs={num_seqs}, has_gap={has_gap}")
         if len(models) == 1:

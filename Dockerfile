@@ -3,7 +3,6 @@ FROM ubuntu:20.04
 
 # Modified from docker://staphb/vadr
 
-
 # metadata - optional, but highly recommended
 LABEL base.image="ubuntu:20.04"
 LABEL dockerfile.version="1"
@@ -12,9 +11,7 @@ LABEL software.version=${VADR_VERSION}
 LABEL description="This software does viral annotations"
 LABEL website="https://github.com/ncbi/vadr"
 LABEL license="https://github.com/ncbi/vadr/blob/master/LICENSE"
-LABEL maintainer1="Anders Goncalves da Silva"
-LABEL maintainer2="Curtis Kapsak"
-LABEL maintainer3="Yasuhiro Tanizawa"
+LABEL maintainer="Yasuhiro Tanizawa"
 
 # install dependencies via apt-get. Clean up apt garbage 
 RUN apt-get update && apt-get install -y \
@@ -81,7 +78,7 @@ RUN cd /root && \
 
 ENV PATH=/root/miniconda3/bin:$PATH
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=2
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \

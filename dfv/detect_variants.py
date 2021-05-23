@@ -137,7 +137,7 @@ def detect_variants(input_fasta, work_dir):
         # logger.info(f"{'='*30} MAFFT stderr {'='*30}\n{p.stderr}\n{'='*80}\n")
     my_out_vcf = os.path.join(work_dir, "my.var.vcf")
     msa2vcf(out_msa, out_vcf)
-    snpeff_cmd = f"snpeff -c {snpeff_conf_file} -noStats -no-downstream -no-upstream -no-utr -classic -formatEff nigvrl {out_vcf} > {out_snpeff}"
+    snpeff_cmd = f"snpEff -c {snpeff_conf_file} -noStats -no-downstream -no-upstream -no-utr -classic -formatEff nigvrl {out_vcf} > {out_snpeff}"
     logger.debug(f"SNPeff command: {snpeff_cmd}")
     p = subprocess.run(snpeff_cmd, shell=True, encoding="UTF-8", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # if p.stderr:

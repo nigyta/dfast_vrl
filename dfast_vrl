@@ -125,6 +125,7 @@ preprocessing_result_fasta, pp_report, pp_warnings = preprocess_contigs(args.inp
 msa_fasta = os.path.join(pp_work_dir, "msa_input.fasta")
 detect_var_work_dir = os.path.join(work_dir, "variants")
 variants = detect_variants(msa_fasta, detect_var_work_dir)
+print("DEBUG", variants)
 variants_str = "variants\n" + "-" * 100 + "\n"
 for gene_name, var_list in variants.items():
     for var in var_list:
