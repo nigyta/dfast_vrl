@@ -11,9 +11,10 @@ from dfv.vadr2ddbj import convert_vadr_to_gbk
 from dfv.genbank2mss import MSS2
 from dfv.genbank2fasta import gbk2fasta
 from dfv.preprocessing import preprocess_contigs
+from dfv.detect_variants import detect_variants
 # from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2-0.5"
+dfv_version = "1.2-0.6"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -120,6 +121,21 @@ vadr_work_dir = os.path.join(work_dir, "vadr")
 preprocessing_result_fasta, pp_report, pp_warnings = preprocess_contigs(args.input_fasta, pp_work_dir, 
     output_fasta=None, reference_fasta=None, disable_scaffolding=args.disable_scaffolding, modify_query_fasta=args.modify_query_fasta)
 
+# variant detection
+msa_fasta = os.path.join(pp_work_dir, "msa_input.fasta")
+detect_var_work_dir = os.path.join(work_dir, "variants")
+variants = detect_variants(msa_fasta, detect_var_work_dir)
+variants_str = "variants\n" + "-" * 100 + "\n"
+for gene_name, var_list in variants.items():
+    for var in var_list:
+        variants_str += gene_name + "\t" + "\t".join(var) + "\n"
+variants_str += "-" * 100 + "\n"
+logger.info(variants_str)
+variant_json_out = os.path.join(work_dir, "variants.json")
+with open(variant_json_out, "w") as f:
+    json.dump(variants, f, indent=4)
+
+
 ##2. Run VADR
 vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_work_dir)
 
@@ -186,6 +202,7 @@ def update_metadata_file(metadata_file, seq_status, mol_type="RNA"):
 seq_status = vadr_report["vadr"].get("seq_status", "")
 update_metadata_file(metadata_file_copy, seq_status, mol_type="RNA")
 
+
 mss = MSS2(output_gbk, metadata_file_copy)
 mss.convert(work_dir, mss_file_prefix)
 gbk2fasta(output_gbk, output_fasta)
@@ -199,5 +216,9 @@ logger.info(f"Writing report json to {out_report_file}")
 with open(out_report_file, "w") as f:
     json.dump(dvr_report, f, indent=4)
 logger.info(f"DFAST_VRL warnings:\n{json.dumps(warnings, indent=4)}\n")
+
+
+
+
 logging.info("DFAST_VRL completed")
 

@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y \
  curl \
  unzip \
  build-essential \
+ git \
  autoconf && \
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
 
@@ -60,14 +61,27 @@ RUN cd ${VADRINSTALLDIR} && \
  tar -xf vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  rm -f vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz
 
-RUN apt-get install -y python3.8 python3-pip git && \
-  apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
-  pip3 install biopython && \
-  cd /usr/bin && \
-  ln -s python3.8 python && \
-  ln -s pip3 pip
+# RUN apt-get install -y python3.8 python3-pip git && \
+#   apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
+#   pip3 install biopython && \
+#   cd /usr/bin && \
+#   ln -s python3.8 python && \
+#   ln -s pip3 pip
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=3
+RUN cd /root && \
+  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
+  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b && \
+  eval "$(/root/miniconda3/bin/conda shell.bash hook)" && \
+  conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 && \
+  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh 
+  # && \
+  # cd /usr/bin && \
+  # ln -s /root/miniconda3/bin/python3.8 python && \
+  # ln -s /root/miniconda3/bin/pip3 pip
+
+ENV PATH=/root/miniconda3/bin:$PATH
+
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \

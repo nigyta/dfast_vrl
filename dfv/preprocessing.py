@@ -11,7 +11,6 @@ else:
     from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N
 
 
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -138,17 +137,60 @@ class Preprocessing:
                 sequences.append(str(seq[hsp.query_start - 1:hsp.query_end].reverse_complement().upper()))
             if idx < len(hsps_sorted) and scaffolding:
                 _, __, next_hsp = hsps_sorted[idx]
-                length = abs(next_hsp.sbjct_start - hsp.sbjct_end) - 1
+                start = max(hsp.sbjct_end, hsp.sbjct_start)
+                end = min(next_hsp.sbjct_start, next_hsp.sbjct_end) - 1
+                length = end - start
+
+                # length = abs(next_hsp.sbjct_start - hsp.sbjct_end) - 1
                 logger.warning(f'Contig{idx} and contig{idx+1} has been concatenated with a gap of {length} nt length.')
                 sequences.append("N" * length)
         with open(output_fasta, "w") as f:
             logger.info(f"Writing preprocessed FASTA file to {output_fasta}")
             if scaffolding:
                 seq = "".join(sequences)
-                f.write(f">sequence\n{seq}")
+                f.write(f">sequence\n{seq}\n")
             else:
                 for idx, seq in enumerate(sequences, 1):
                     f.write(f">sequence{idx}\n{seq}\n")
+
+    def write_fasta_for_msa(self, output_fasta):
+        def _sort_func(hit):
+            query_id, hit_id, hsp = hit
+            return hsp.sbjct_start if hsp.strand == ("Plus", "Plus") else hsp.sbjct_end
+
+        hsps_sorted = sorted(self.hit_history, key=lambda hit: hit[2].sbjct_start)  # hit = tuple of (query_id, hit_id, hsp)
+        sequences = []
+        seq_dict = {r.id: r.seq for r in SeqIO.parse(self.query_fasta, "fasta")}
+        seq_list_sbjct = [str(r.seq) for r in SeqIO.parse(self.subject_fasta, "fasta")]
+        assert len(seq_list_sbjct) == 1
+        sbcjt_seq = seq_list_sbjct[0]
+        # add 5'-end
+        end = min(hsps_sorted[0][2].sbjct_start, hsps_sorted[0][2].sbjct_end) - 1
+        if end > 0:
+            sequences.append(sbcjt_seq[:end])
+        for idx, (query_id, hit_id, hsp) in enumerate(hsps_sorted, 1):
+            # print(idx, query_id, hit_id)
+            print(hsp)
+            seq = seq_dict[query_id]
+            if hsp.strand == ("Plus", "Plus"):
+                sequences.append(str(seq[hsp.query_start - 1:hsp.query_end]).upper())
+            else:
+                sequences.append(str(seq[hsp.query_start - 1:hsp.query_end].reverse_complement().upper()))
+            if idx < len(hsps_sorted):
+                _, __, next_hsp = hsps_sorted[idx]
+                start = max(hsp.sbjct_end, hsp.sbjct_start)
+                end = min(next_hsp.sbjct_start, next_hsp.sbjct_end) - 1
+                sequences.append(str(sbcjt_seq[start:end]))
+                # length = end - start
+        # add 3'-end
+        start = max(hsps_sorted[-1][2].sbjct_start, hsps_sorted[-1][2].sbjct_end)
+        if start < len(sbcjt_seq):
+            sequences.append(sbcjt_seq[start:])
+        with open(output_fasta, "w") as f:
+            logger.info(f"Writing FASTA file for MSA to {output_fasta}")
+            seq = "".join(sequences)
+            f.write(f">query\n{seq}\n")
+            f.write(f">sbjct\n{sbcjt_seq}\n")
 
     def set_report(self):
         def _get_length(fasta_file):
@@ -159,7 +201,7 @@ class Preprocessing:
 
         def _get_aligned_length(hsp):
             query_aligned = hsp.query_end - hsp.query_start + 1
-            sbjct_aligned = hsp.sbjct_end - hsp.sbjct_start + 1
+            sbjct_aligned = abs(hsp.sbjct_end - hsp.sbjct_start) + 1
             return query_aligned, sbjct_aligned
 
         current_query, current_subject = self.get_fasta_files()
@@ -224,10 +266,10 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
         pp.write_output(output_fasta, scaffolding=scaffolding)
         result_fasta = output_fasta
     else:
-        pp.write_output(output_fasta, scaffolding=scaffolding)
+        pp.write_output(output_fasta, scaffolding=False)  # when modify_query_fasta is enabled, scaffolding is always disabled.
         # logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
         result_fasta = input_fasta
-
+    pp.write_fasta_for_msa(output_fasta=os.path.join(work_dir, "msa_input.fasta"))
 
     return result_fasta, {"preprocessing": pp.report}, pp.warnings
 
@@ -240,6 +282,6 @@ if __name__ == '__main__':
     # logger.setLevel(logging.DEBUG)
     input_fasta = sys.argv[1]
     output_dir = sys.argv[2]
-    output_fasta, report = preprocess_contigs(input_fasta, output_dir, modify_query_fasta=True, scaffolding=True)
+    output_fasta, report, warnings = preprocess_contigs(input_fasta, output_dir, modify_query_fasta=True, disable_scaffolding=False)
     print("output_fasta", output_fasta)
     print(report)
