@@ -193,23 +193,23 @@ class Metadata():
     #             ret.append(name)
     #     return ret
 
-    @staticmethod
-    def definition_old():
-        ret = []
-        for line in open(Metadata.METADATA_DEFINITION_FILE):
-            if line.startswith("#"):
-                continue
-            else:
-                name, description, qualifier, feature, entry, type_, mss_required, dfast_required, pattern, value = line.strip("\n").split("\t")[0:10]
-                if entry == "EX_SOURCE":
-                    continue  # skipe extended qualifiers for source features
-                mss_required = True if mss_required == "TRUE" else False
-                dfast_required = True if dfast_required == "TRUE" else False
+    # @staticmethod
+    # def definition_old():
+    #     ret = []
+    #     for line in open(Metadata.METADATA_DEFINITION_FILE):
+    #         if line.startswith("#"):
+    #             continue
+    #         else:
+    #             name, description, qualifier, feature, entry, type_, mss_required, dfast_required, pattern, value = line.strip("\n").split("\t")[0:10]
+    #             if entry == "EX_SOURCE":
+    #                 continue  # skipe extended qualifiers for source features
+    #             mss_required = True if mss_required == "TRUE" else False
+    #             dfast_required = True if dfast_required == "TRUE" else False
 
-                ret.append({"name": name, "description": description, "qualifier": qualifier,
-                             "entry": entry, "type": type_, "mss_required": mss_required, 
-                             "dfast_required": dfast_required, "pattern": pattern})
-        return ret
+    #             ret.append({"name": name, "description": description, "qualifier": qualifier,
+    #                          "entry": entry, "type": type_, "mss_required": mss_required, 
+    #                          "dfast_required": dfast_required, "pattern": pattern})
+    #     return ret
 
     def getValue(self, fieldName, defaultVal="", idx=0):
         field = self.fields.get(fieldName)
@@ -267,6 +267,7 @@ class Metadata():
                         field.setValue(value)
 
                     self.fields[name] = field
+
 
     def getFields(self):
         return list(self.fields.keys())  # self.fields is a dictionary of metadata
@@ -407,6 +408,9 @@ class Metadata():
                 if field.feature == featureType:
                     if field.value or field.mss_required:
                         RET += field.render()
+            if featureType == "ST_COMMENT" and len(RET) == 1:
+                # if ST_COMMENT empty, leave without doing anything
+                return
             if len(RET) > 0:
                 RET[0][1] = featureType.split(":")[0]
                 outputData += RET
@@ -719,9 +723,7 @@ class Metadata():
                     self.setDefaultValue(target_name, value)
                 elif action == "ADDFIELD":
                     self.addField(target_name, value=None)
-
                 else:
-
                     setAttribute(target_name, action, value)
 
             if flag=="reference":
@@ -736,73 +738,73 @@ class Metadata():
             
 
 
-    def setDefaults2a(self):
+    # def setDefaults2a(self):
 
-        # for compatibility
-        organism = self.getValue("organism")
-        if organism:
-            words = organism.split()
-            genus = "Genus" if len(words) == 0 else words[0]
-            species = "sp." if len(words) <= 1 else " ".join(words[1:])
-            self.setValue("genus", genus)
-            self.setValue("species", species)
-        else:
-            genus = self.getValue("genus", "Genus")
-            species = self.getValue("species", "sp.")
-            self.setValue("organism", genus + " " + species)
+    #     # for compatibility
+    #     organism = self.getValue("organism")
+    #     if organism:
+    #         words = organism.split()
+    #         genus = "Genus" if len(words) == 0 else words[0]
+    #         species = "sp." if len(words) <= 1 else " ".join(words[1:])
+    #         self.setValue("genus", genus)
+    #         self.setValue("species", species)
+    #     else:
+    #         genus = self.getValue("genus", "Genus")
+    #         species = self.getValue("species", "sp.")
+    #         self.setValue("organism", genus + " " + species)
 
-        default_genomes = ["Assembly Method", "Genome Coverage", "Sequencing Technology", "tagset_id", "mol_type", "organism", "strain"]
-        default_transcriptome = ["division", "keyword", "Assembly Method", "Sequencing Technology", "tagset_id", "mol_type"]
-        projectType = self.getValue("projectType", "wgs")
+    #     default_genomes = ["Assembly Method", "Genome Coverage", "Sequencing Technology", "tagset_id", "mol_type", "organism", "strain"]
+    #     default_transcriptome = ["division", "keyword", "Assembly Method", "Sequencing Technology", "tagset_id", "mol_type"]
+    #     projectType = self.getValue("projectType", "wgs")
 
-        if projectType == "gnm":
+    #     if projectType == "gnm":
 
-            requiredFields = ["seqTopologies", "seqNames", "seqTypes"] + default_genomes
-            self.setValue("seqStatus", "complete")
-            self.setValue("division", "")
-            self.setValue("keyword", "")
-            self.setValue("dataType", "")
-            self.setValue("seqRank", "")
+    #         requiredFields = ["seqTopologies", "seqNames", "seqTypes"] + default_genomes
+    #         self.setValue("seqStatus", "complete")
+    #         self.setValue("division", "")
+    #         self.setValue("keyword", "")
+    #         self.setValue("dataType", "")
+    #         self.setValue("seqRank", "")
 
-            self.setValue("tagset_id", "Genome-Assembly-Data")
-            self.setValue("mol_type", "genomic DNA")
-            self.setDefaultValue("locusTagPrefix", "LOCUS")
+    #         self.setValue("tagset_id", "Genome-Assembly-Data")
+    #         self.setValue("mol_type", "genomic DNA")
+    #         self.setDefaultValue("locusTagPrefix", "LOCUS")
 
-        elif projectType == "wgs":
-            requiredFields = ["keyword", "type"] + default_genomes
-            self.setValue("seqStatus", "draft")
-            self.setValue("division", "")
-            self.setDefaultValue("keyword", "WGS; STANDARD_DRAFT")
-            self.setValue("dataType", "WGS")
-            self.setDefaultValue("seqNames", "Sequence")
-            self.setValue("seqTopologies", "")
-            self.setValue("seqTypes", "")
-            self.setDefaultValue("seqRank", "contig")
+    #     elif projectType == "wgs":
+    #         requiredFields = ["keyword", "type"] + default_genomes
+    #         self.setValue("seqStatus", "draft")
+    #         self.setValue("division", "")
+    #         self.setDefaultValue("keyword", "WGS; STANDARD_DRAFT")
+    #         self.setValue("dataType", "WGS")
+    #         self.setDefaultValue("seqNames", "Sequence")
+    #         self.setValue("seqTopologies", "")
+    #         self.setValue("seqTypes", "")
+    #         self.setDefaultValue("seqRank", "contig")
 
-            self.setValue("tagset_id", "Genome-Assembly-Data")
-            self.setValue("mol_type", "genomic DNA")
-            self.setDefaultValue("locusTagPrefix", "LOCUS")
-            # dynamically set required fields
+    #         self.setValue("tagset_id", "Genome-Assembly-Data")
+    #         self.setValue("mol_type", "genomic DNA")
+    #         self.setDefaultValue("locusTagPrefix", "LOCUS")
+    #         # dynamically set required fields
 
-        elif projectType == "tsa":
+    #     elif projectType == "tsa":
 
-            self.setValue("tagset_id", "Assembly-Data")
-            self.setValue("mol_type", "transcribed RNA")
-            self.fields["coverage"].qualifier = "Coverage"
-            self.setValue("division", "TSA")
-            self.setValue("keyword", "TSA; Transcriptome Shotgun Assembly")
-            # print "KEYWORD:", self.getValue("keyword")
-            self.setValue("dataType", "")
-            requiredFields = [] + default_transcriptome
+    #         self.setValue("tagset_id", "Assembly-Data")
+    #         self.setValue("mol_type", "transcribed RNA")
+    #         self.fields["coverage"].qualifier = "Coverage"
+    #         self.setValue("division", "TSA")
+    #         self.setValue("keyword", "TSA; Transcriptome Shotgun Assembly")
+    #         # print "KEYWORD:", self.getValue("keyword")
+    #         self.setValue("dataType", "")
+    #         requiredFields = [] + default_transcriptome
 
-        else:
-            # others
-            requiredFields = []
+    #     else:
+    #         # others
+    #         requiredFields = []
 
-        fields = [field for field in self.fields.values() if field.qualifier in requiredFields]
-        for field in fields:
-            field.mss_required = True
-            # print self.getValue("mol_type")
+    #     fields = [field for field in self.fields.values() if field.qualifier in requiredFields]
+    #     for field in fields:
+    #         field.mss_required = True
+    #         # print self.getValue("mol_type")
 
 if __name__ == '__main__':
     metadataFlle = "/Users/ytanizaw/project/labrep_dev/jobs/53eeb0b5-edc5-427d-99c2-b213d6c187a0/result/metadata.txt"
