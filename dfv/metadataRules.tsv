@@ -63,7 +63,7 @@ projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Finishing_Goal	DELET
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)|(vrl)	assemblyMethod	mss_required	TRUE		genome/transcript_projectでは必須
 projectType	value	(gss)|(sts)|(env)|(syn)	assemblyMethod	DELETE			genome/transcript_project以外では不要
 projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Assembly_Name	DELETE			genome_project以外では不要
-projectType	value	(gnm)|(wgs)|(con)|(htg)	coverage	mss_required	TRUE		genome_projectでは必須
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(vrl)	coverage	mss_required	TRUE		genome_projectでは必須
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(env)|(syn)	coverage2	DELETE	TRUE		genome_projectでは必須
 projectType	value	(tsa)|(est)|(htc)|(gss)|(sts)|(env)|(syn)	coverage	DELETE			genome/transcript_project以外では不要
 projectType	value	(gss)|(sts)|(env)|(syn)	coverage2	DELETE			genome/transcript_project以外では不要

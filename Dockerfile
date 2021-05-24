@@ -65,10 +65,9 @@ RUN cd ${VADRINSTALLDIR} && \
 #   ln -s python3.8 python && \
 #   ln -s pip3 pip
 
-RUN cd /root && \
-  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
-  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b && \
-  eval "$(/root/miniconda3/bin/conda shell.bash hook)" && \
+RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
+  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
+  eval "$(/miniconda3/bin/conda shell.bash hook)" && \
   conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 && \
   rm Miniconda3-py38_4.9.2-Linux-x86_64.sh 
   # && \
@@ -76,9 +75,9 @@ RUN cd /root && \
   # ln -s /root/miniconda3/bin/python3.8 python && \
   # ln -s /root/miniconda3/bin/pip3 pip
 
-ENV PATH=/root/miniconda3/bin:$PATH
+ENV PATH=/miniconda3/bin:$PATH
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=2
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=4
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
