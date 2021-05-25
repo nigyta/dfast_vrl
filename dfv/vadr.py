@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def run(input_file, output_dir, cpu=4):
+def run(input_file, output_dir, cpu=1):
     # v-annotate.pl --split --cpu 4 --glsearch -s -r --nomisc --mkey sarscov2 --lowsim5term 2 --lowsim3term 2 
     # --alt_fail lowscore,fstukcnf,insertnn,deletinn [--mdir vadr1.2/vadr-models-sarscov2-1.2-2] input.fasta out_dir
     logging.info("Running VADR...")

@@ -170,7 +170,7 @@ class Preprocessing:
             sequences.append(sbcjt_seq[:end])
         for idx, (query_id, hit_id, hsp) in enumerate(hsps_sorted, 1):
             # print(idx, query_id, hit_id)
-            print(hsp)
+            # print(hsp)
             seq = seq_dict[query_id]
             if hsp.strand == ("Plus", "Plus"):
                 sequences.append(str(seq[hsp.query_start - 1:hsp.query_end]).upper())

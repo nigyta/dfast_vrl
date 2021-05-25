@@ -82,6 +82,17 @@ class VadrFeature:
     def get_feature_location(self):
         coords = self.seq_coords.split(",")
         locations = [MyLocation(cord) for cord in coords]
+        # ribosomal_slippageを含むmat_peptideでCDSの前半部分がすべてNになっている場合の例外処理 -----
+        if len(locations) > 1:
+            first_cds, second_cds = locations[0], locations[1]
+            len_of_1st_cds = first_cds.right - first_cds.left + 1
+            offset_5_prime_n = self.five_prime_n - len_of_1st_cds
+            if offset_5_prime_n >= 0:
+                logger.warning(f"First part of ribosomal_slippage is removed as it is located within a gap [{self.ftr_type}:{self.ftr_name}]")
+                self.five_prime_n = offset_5_prime_n
+                locations = [second_cds]
+            # print("offset_5_prime_n", offset_5_prime_n)
+        # -----
         if "5'" in self.trc or self.five_prime_n > 0:   # self.trc can be either of 5' 3' 5'&3'
             locations[0].set_left_partial(self.five_prime_n)
         if "3'" in self.trc or self.three_prime_n > 0:
@@ -90,6 +101,8 @@ class VadrFeature:
         return sum(locations)  # ret is CompoundLocation for joined locations
 
     def get_seq_feature(self):
+        if self.ftr_len == self.five_prime_n == self.three_prime_n:  # feature is within a gap
+            return None
         location = self.get_feature_location()
         if self.ftr_type == "stem_loop":
             qualifiers = {}
@@ -97,15 +110,21 @@ class VadrFeature:
             qualifiers = {"product": [self.ftr_name]}
         if self.ftr_type == "CDS":
             if self.n_instp:
-                self.ftr_type = "misc_feature"
-                del qualifiers["product"]
-                note = [f"similar to {self.ftr_name}", f"internal stop at {self.n_instp}"]
+                if self.n_instp < self.n_to:
+                    self.ftr_type = "misc_feature"
+                    del qualifiers["product"]
+                    note = [f"similar to {self.ftr_name}", f"internal stop at {self.n_instp}"]
+                else:
+                    note = [f"ambiguous 3'-end"]
                 qualifiers["note"] = note
             else:
                 # set codon start (assuming strand is +), TODO: convert to misc_feature if both ends are ambiguous
                 if isinstance(location.start, BeforePosition) and isinstance(location.end, ExactPosition):
-                    length = location.end - location.start
+                    # length2 = location.end - location.start
+                    length = len(location)
                     codon_start = (length % 3) + 1
+                    # print("LENGTH, LENGTH2, CODON_START", length, length2, codon_start)
+                    # print(location)
                     qualifiers["codon_start"] = [codon_start]
                 else:
                     qualifiers["codon_start"] = [1]
@@ -141,6 +160,7 @@ class VADR2DDBJ:
         ftr_file = os.path.join(self.vadr_dir, vadr_prefix + ".vadr.ftr")
         self.set_features(ftr_file)
         self.modify_incomplete_cds()
+        self.change_mat_peptide_to_misc()
         self.check_completeness()
         self.add_UTRs_to_complete_genome()
         today = datetime.now().strftime('%d-%b-%Y').upper()
@@ -223,6 +243,9 @@ class VADR2DDBJ:
                 logger.info(f"Skipping duplicated features {feature}")
                 continue
             seq_feature = feature.get_seq_feature()  # Create Biopython SeqFeature object from MyFeature
+            if seq_feature is None:
+                logger.warning(f"{feature.ftr_type}:{feature.n_from}-{feature.n_to}({feature.ftr_name}) is located within an assembly_gap.")
+                continue
             gene = _get_gene(feature, gene_features)
             if gene:  # assing gene if possible
                 seq_feature.qualifiers["gene"] = [gene]
@@ -341,13 +364,20 @@ class VADR2DDBJ:
             })
 
     def modify_incomplete_cds(self):
+        def get_n_ratio(seq, feature):
+            sequence = str(feature.extract(seq)).upper()
+            n_count = sequence.count("N")
+            total_len = len(sequence)
+            return n_count / total_len 
+
+        max_n_ratio = 0.5
         for seq_record in self.seq_dict.values():
             for feature in seq_record.features:
                 if feature.type != "CDS":
                     continue
                 incomplete = False
                 note = []
-                product = feature.qualifiers.get("product", ["unkown product"])[0]
+                product = feature.qualifiers.get("product", [""])[0]
                 translation = feature.qualifiers.get("translation", [""])[0]
                 if isinstance(feature.location.start, BeforePosition):
                     INCOMPLETE_CDS_WARNING.add("no start codon:" + product)
@@ -357,10 +387,21 @@ class VADR2DDBJ:
                     INCOMPLETE_CDS_WARNING.add("no stop codon:" + product)
                     note.append("no stop codon")
                     incomplete = True
-                if "XXXX" in translation:
+                # if "XXXX" in translation:
+                    # INCOMPLETE_CDS_WARNING.add("too many ambiguous AA:" + product)
+                    # incomplete = True
+                    # note.append("too many ambiguous AA")
+                n_ratio = get_n_ratio(seq_record.seq, feature)
+                if n_ratio > max_n_ratio:
+                    feature.type = "misc_feature"
+                    del feature.qualifiers["codon_start"]
+                    del feature.qualifiers["transl_table"]
+                    del feature.qualifiers["translation"]
+                    del feature.qualifiers["product"]
+                    if "ribosomal_slippage" in feature.qualifiers:
+                        del feature.qualifiers["ribosomal_slippage"]
                     INCOMPLETE_CDS_WARNING.add("too many ambiguous AA:" + product)
                     incomplete = True
-                    note.append("too many ambiguous AA")
                 if incomplete:
                     # The part below is currently disabled, but might be revived in the future
                     # feature.type = "misc_feature"
@@ -370,11 +411,38 @@ class VADR2DDBJ:
                     # del feature.qualifiers["product"]
                     # if "ribosomal_slippage" in feature.qualifiers:
                     #     del feature.qualifiers["ribosomal_slippage"]
-                    note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"
-                    feature.qualifiers.setdefault("note", []).append(note)
+                    if product:
+                        feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
+                    if note:
+                        # note = f"incomplete CDS: " + "; ".join(note)
+                        # note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"
+                        feature.qualifiers.setdefault("note", []).append("; ".join(note))
         if len(INCOMPLETE_CDS_WARNING.targets) > 0:
             self.warnings.append(INCOMPLETE_CDS_WARNING)
 
+    def change_mat_peptide_to_misc(self):
+        def _feature_is_in_CDS(feature, CDS_locations):
+            for cds_loc in CDS_locations:
+                if cds_loc.start <= feature.location.start and feature.location.end <= cds_loc.end:
+                    return True
+            return False
+
+        CDS_locations = []
+        for seq_record in self.seq_dict.values():
+            for feature in seq_record.features:
+                if feature.type == "CDS":
+                    CDS_locations.append(feature.location)
+        for seq_record in self.seq_dict.values():
+            features = []
+            for feature in seq_record.features:
+                if feature.type == "mat_peptide":
+                    if not _feature_is_in_CDS(feature, CDS_locations):
+                        product = feature.qualifiers.get("product", ["mat_peptide"])[0] 
+                        logger.warning(f"mat_peptide is changed to misc_feature because its parent CDS is not properly annotated. [{product}]")
+                        feature.type = "misc_feature"
+                        feature.qualifiers.setdefault("note", []).append(f"mat_peptide:{product}")
+                        del feature.qualifiers["product"]
+                   
 
     def to_gbk(self, output_file, with_feature_id=True):
         if with_feature_id:
@@ -524,20 +592,22 @@ def convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate):
 
 if __name__ == '__main__':
     
-    ftr_file = "test/vadr/vadr.vadr.ftr"
-    input_fasta = "../meta_vry_result_rc.fa"
-    output_gbk = "test/test.vadr.gbk"
-
-    ftr_file = sys.argv[1]
-    vadr_dir = sys.argv[2]
-    output_gbk = sys.argv[3]
+    ftr_file = "OUT/vadr/vadr.vadr.ftr"
+    # input_fasta = "../meta_vry_result_rc.fa"
+    input_fasta = "../keio/hcov-19_japan_donner476_2021.fasta"
+    output_gbk = "OUT/test.vadr.gbk"
+    vadr_dir = "OUT/vadr"
+    report_file = "OUT/test.report.json"
+    # ftr_file = sys.argv[1]
+    # √ = sys.argv[2]
+    # output_gbk = sys.argv[3]
 
 
 
     v2d = VADR2DDBJ(input_fasta, vadr_dir)
     v2d.to_gbk(output_gbk)
-    v2d.make_report()
-    print(vsd.warnings)
+    v2d.make_report(report_file)
+    # print(vsd.warnings)
 """
 python /Users/tanizawa/dfast_web/app/scripts/genbank2mss.py
 python genbank2mss.py <genbankFileName> <metadataFileName> <outDir> <filePrefix>
