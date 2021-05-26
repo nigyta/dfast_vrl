@@ -14,7 +14,7 @@ from dfv.preprocessing import preprocess_contigs
 from dfv.detect_variants import detect_variants
 # from dfv.common import get_logger, LogConfig
 
-dfv_version = "1.2-0.8"
+dfv_version = "1.2-0.9"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -178,7 +178,7 @@ isolate, mss_file_prefix = get_isolate(metadata_file_copy, args)
 output_gbk, vadr_report, vadr_warnings = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate)
 
 
-def update_metadata_file(metadata_file, seq_status, mol_type="RNA"):
+def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA"):
     lines = open(metadata_file).readlines()
     ret = ""
     for line in lines:
@@ -192,15 +192,20 @@ def update_metadata_file(metadata_file, seq_status, mol_type="RNA"):
         ret += f"seqStatus\t{seq_status}\n"
         ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, nearly complete genome\n"
     elif seq_status == "draft":
-        ret += f"seqStatus\t{seq_status}\n"
-        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, draft genome, @@[entry]@@\n"
+        if number_of_sequence == 1:
+            ret += f"seqStatus\t{seq_status}\n"
+            ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, partial genome\n"
+        else:
+            ret += f"seqStatus\t{seq_status}\n"
+            ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, draft genome, @@[entry]@@\n"
     else:
         raise AssertionError
     with open(metadata_file, "w") as f:
         f.write(ret)
 
 seq_status = vadr_report["vadr"].get("seq_status", "")
-update_metadata_file(metadata_file_copy, seq_status, mol_type="RNA")
+number_of_sequence = vadr_report["vadr"].get("number_of_sequence", 1)
+update_metadata_file(metadata_file_copy, seq_status, number_of_sequence, mol_type="RNA")
 
 
 mss = MSS2(output_gbk, metadata_file_copy)

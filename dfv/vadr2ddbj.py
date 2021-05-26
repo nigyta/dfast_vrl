@@ -16,12 +16,14 @@ if __name__ == '__main__':
     from reference_models import get_reference_model
     from dfv_warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
         MORE_THAN_ONE_MODEL_USED, create_VADR_warning, VADR_ANNOTATION_FAILED, \
-        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME
+        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, \
+        INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME, MISC_FEATURES
 else:
     from .reference_models import get_reference_model
     from .dfv_warnings import INCOMPLETE_CDS_WARNING, INCOMPLETE_GENOME_WARNING, \
         MORE_THAN_ONE_MODEL_USED, create_VADR_warning, VADR_ANNOTATION_FAILED, \
-        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME
+        MISSING_FEATURES, PARTIAL_FEATURES, DUPLICATED_FEATURES, FRAGMENTED_FEATURES, \
+        INFO_NEARLY_COMPLETE_GENOME, INFO_DRAFT_GENOME, MISC_FEATURES
 
 # Requires Biopython 1.78 and higher
 
@@ -113,18 +115,21 @@ class VadrFeature:
                 if self.n_instp < self.n_to:
                     self.ftr_type = "misc_feature"
                     del qualifiers["product"]
-                    note = [f"similar to {self.ftr_name}", f"internal stop at {self.n_instp}"]
+                    note = [f"similar to CDS of {self.ftr_name}", f"internal stop at {self.n_instp}"]
+                    MISC_FEATURES.add(f"CDS:{self.ftr_name}")
+                elif self.three_prime_n > 0:  # stop codon is located within a gap. Annotated as CDS
+                    note = [f"ambiguous 3'-end due to assembly_gap"]
                 else:
-                    note = [f"ambiguous 3'-end"]
+                    self.ftr_type = "misc_feature"
+                    del qualifiers["product"]
+                    note = [f"similar to CDS of {self.ftr_name}", f"no stop codon identified at 3'-end"]
+                    MISC_FEATURES.add(f"CDS:{self.ftr_name}")
                 qualifiers["note"] = note
-            else:
+            if self.ftr_type != "misc_feature":
                 # set codon start (assuming strand is +), TODO: convert to misc_feature if both ends are ambiguous
                 if isinstance(location.start, BeforePosition) and isinstance(location.end, ExactPosition):
-                    # length2 = location.end - location.start
                     length = len(location)
                     codon_start = (length % 3) + 1
-                    # print("LENGTH, LENGTH2, CODON_START", length, length2, codon_start)
-                    # print(location)
                     qualifiers["codon_start"] = [codon_start]
                 else:
                     qualifiers["codon_start"] = [1]
@@ -254,7 +259,7 @@ class VADR2DDBJ:
                 _set_translation(seq_feature, self.seq_dict[feature.seq_name])
             if "note" in model_feature.attrs:
                 seq_feature.qualifiers.setdefault("note", []).append(model_feature.attrs["note"])
-            if "exception" in model_feature.attrs and isinstance(seq_feature.location, CompoundLocation):
+            if "exception" in model_feature.attrs and isinstance(seq_feature.location, CompoundLocation) and seq_feature.type != "misc_feature":
                 assert model_feature.attrs["exception"] == "ribosomal slippage"
                 seq_feature.qualifiers["ribosomal_slippage"] = [None]
 
@@ -392,8 +397,10 @@ class VADR2DDBJ:
                     # incomplete = True
                     # note.append("too many ambiguous AA")
                 n_ratio = get_n_ratio(seq_record.seq, feature)
-                if n_ratio > max_n_ratio:
+                if n_ratio >= max_n_ratio:
                     feature.type = "misc_feature"
+                    MISC_FEATURES.add(f"CDS:{product}")
+
                     del feature.qualifiers["codon_start"]
                     del feature.qualifiers["transl_table"]
                     del feature.qualifiers["translation"]
@@ -401,6 +408,8 @@ class VADR2DDBJ:
                     if "ribosomal_slippage" in feature.qualifiers:
                         del feature.qualifiers["ribosomal_slippage"]
                     INCOMPLETE_CDS_WARNING.add("too many ambiguous AA:" + product)
+                    note.append(f"originally annotated as CDS:{product}")
+                    note.append("too many ambiguous AA")
                     incomplete = True
                 if incomplete:
                     # The part below is currently disabled, but might be revived in the future
@@ -411,12 +420,14 @@ class VADR2DDBJ:
                     # del feature.qualifiers["product"]
                     # if "ribosomal_slippage" in feature.qualifiers:
                     #     del feature.qualifiers["ribosomal_slippage"]
-                    if product:
-                        feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
+                    # if product:
+                    #     feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
                     if note:
                         # note = f"incomplete CDS: " + "; ".join(note)
                         # note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"
-                        feature.qualifiers.setdefault("note", []).append("; ".join(note))
+                        # feature.qualifiers.setdefault("note", []).append("; ".join(note))
+                        note_qualifiers = feature.qualifiers.get("note", [])
+                        feature.qualifiers["note"] = note_qualifiers + note
         if len(INCOMPLETE_CDS_WARNING.targets) > 0:
             self.warnings.append(INCOMPLETE_CDS_WARNING)
 
@@ -440,9 +451,10 @@ class VADR2DDBJ:
                         product = feature.qualifiers.get("product", ["mat_peptide"])[0] 
                         logger.warning(f"mat_peptide is changed to misc_feature because its parent CDS is not properly annotated. [{product}]")
                         feature.type = "misc_feature"
-                        feature.qualifiers.setdefault("note", []).append(f"mat_peptide:{product}")
+                        MISC_FEATURES.add(f"mat_peptide:{product}")
+                        feature.qualifiers.setdefault("note", []).append(f"originally annotated as mat_peptide:{product}")
+                        feature.qualifiers.setdefault("note", []).append(f"parent CDS is not properly annotated")
                         del feature.qualifiers["product"]
-                   
 
     def to_gbk(self, output_file, with_feature_id=True):
         if with_feature_id:
@@ -524,7 +536,8 @@ class VADR2DDBJ:
             "missing_cds": missing,
             # "warnings": [warning.to_tuple() for warning in self.warnings]
         })
-        
+        if len(MISC_FEATURES.targets) > 0:           
+            self.warnings.append(MISC_FEATURES)
         report_json_string = json.dumps(self.report, indent=4)
         logger.info(f"vadr2gbk report:\n{report_json_string}\n")
         with open(output_file, "w") as f:

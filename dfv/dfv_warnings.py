@@ -89,6 +89,10 @@ INCOMPLETE_GENOME_WARNING = DFV_WARNING(level="WARNING",
                                         name="INCOMPLETE_GENOME", 
                                         message="Incomplete query genome.")
 
+MISC_FEATURES = DFV_WARNING(level="WARNING", 
+                                        name="MISC_FEATURES", 
+                                        message="Biological features are annotatated as misc_feature.")
+
 def create_VADR_warning(fail, alert_desc, alert_detail):
     if fail == "yes":
         level = "CRITICAL"
