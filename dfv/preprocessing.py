@@ -6,9 +6,9 @@ from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
 if __name__ == '__main__':
-    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N
+    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED
 else:
-    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N
+    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED
 
 
 import logging
@@ -38,20 +38,33 @@ class Preprocessing:
         len_trimmed = 0
         len_original = 0
         str_output = ""
+        flag_seq_trimmed, flag_seq_renamed = False, False
+        seq_id_original = []
         for r in R:
             seq_id = r.id
             seq_original = str(r.seq).upper()
             seq_trimmed = seq_original.strip("N")
             len_original += len(seq_original)
             len_trimmed += len(seq_trimmed)
+            if len(seq_id) > 50:
+                seq_id_original.append(seq_id)
+                seq_id = seq_id[:50]
+                flag_seq_renamed = True
             str_output += f">{seq_id}\n{seq_trimmed}\n"
         if len_trimmed != len_original:
             logger.warning(f"Trimmed leading/trailing Ns in the query FASTA. Length: {len_original} --> {len_trimmed}")
             TRIM_TERMINAL_N.add(f"Length: {len_original} --> {len_trimmed}")
             self.warnings.append(TRIM_TERMINAL_N)
+            flag_seq_trimmed = True
+        if flag_seq_renamed:
+            logger.warning(f"Sequence name is too long. Truncated to 50 letters.")
+            SEQUENCE_RENAMED.add(", ".join(seq_id_original))            
+            self.warnings.append(SEQUENCE_RENAMED)
+        if flag_seq_trimmed or flag_seq_renamed:
             with open(out_fasta, "w") as f:
                 f.write(str_output)
-                self.query_fasta = out_fasta
+            self.query_fasta = out_fasta
+
 
     def get_fasta_files(self, round=None):
         if round is None:
@@ -192,6 +205,7 @@ class Preprocessing:
             f.write(f">query\n{seq}\n")
             f.write(f">sbjct\n{sbcjt_seq}\n")
 
+
     def set_report(self):
         def _get_length(fasta_file):
             R = list(SeqIO.parse(fasta_file, "fasta"))
@@ -241,7 +255,7 @@ class Preprocessing:
                 logger.info(f"Writing quality control and preprocessing report file to {output_file}")
                 json.dump({"preprocessing": self.report}, f, indent=4)
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
 
 def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta=None, modify_query_fasta=False, disable_scaffolding=False):
@@ -268,7 +282,7 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
     else:
         pp.write_output(output_fasta, scaffolding=False)  # when modify_query_fasta is enabled, scaffolding is always disabled.
         # logger.warning("### Since preprocessing is disabled, original input FASTA will be used for the downstream steps. ###")
-        result_fasta = input_fasta
+        result_fasta = pp.query_fasta  # query fasta (or cleaned fasta) is used in the downloading process
     pp.write_fasta_for_msa(output_fasta=os.path.join(work_dir, "msa_input.fasta"))
 
     return result_fasta, {"preprocessing": pp.report}, pp.warnings

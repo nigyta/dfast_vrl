@@ -30,6 +30,7 @@ class DFV_WARNING:
     def to_tuple(self):
         return (self.level, self.name, self.message, self.targets)
 
+
 INFO_QUERY_MODIFIED = DFV_WARNING(level="INFO", 
                                      name="INFO_QUERY_MODIFIED", 
                                      message="The query genome has been modified during the preprocessing step.")
@@ -41,6 +42,10 @@ INFO_SCAFFOLDING_ENABLED = DFV_WARNING(level="INFO",
 TRIM_TERMINAL_N = DFV_WARNING(level="WARNING", 
                                      name="TRIM_TERMINAL_N", 
                                      message="Trimmed terminal Ns in the query during the processing step.")
+
+SEQUENCE_RENAMED = DFV_WARNING(level="WARNING", 
+                                     name="SEQUENCE_RENAMED", 
+                                     message="Sequence name is too long. Truncated to 50 letters.")
 
 
 INFO_DRAFT_GENOME = DFV_WARNING(level="INFO", 

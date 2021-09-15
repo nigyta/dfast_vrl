@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install -y \
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
 
 
-ENV VADR_VERSION="1.2"\
-  VADR_CORONA_MODELS_VERSION="1.2-2" \
+ENV VADR_VERSION="1.3"\
+  VADR_CORONA_MODELS_VERSION="1.3-1" \
   LC_ALL=C \
   VADRINSTALLDIR=/opt/vadr
 
