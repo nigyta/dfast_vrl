@@ -77,7 +77,7 @@ RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64
 
 ENV PATH=/miniconda3/bin:$PATH
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=8
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
