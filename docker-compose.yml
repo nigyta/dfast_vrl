@@ -7,6 +7,6 @@ services:
         command: tail -f /dev/null
         volumes:
             - .:/dfast_vrl
-            - ..:/data
+            - ../test_data:/data
         environment:
             - TZ=Asia/Tokyo            

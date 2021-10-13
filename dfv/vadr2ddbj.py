@@ -71,8 +71,13 @@ class VadrFeature:
             assert len(cols) == 26
             for idx in [2, 7, 8, 11, 12, 15, 16, 21, 22]:
                 cols[idx] = int(cols[idx])
-            for idx in [13, 17, 18, 19, 20]:
+            for idx in [13, 17, 18, 20]:
                 cols[idx] = None if cols[idx] == "-" else int(cols[idx])
+            cols[19] = None if cols[19] == "-" else cols[19]  # p_instp
+            # ^ p_instp is not used as of 2021-10-13.
+            # Modified to avoid error while updating vadr1.2 to 1.3
+            # Until v1.2, p_instp was an integer like "27645" (same as n_instp)
+            # Since v1.3, p_instp is s string like "seq:27643..27645:+"
             cols[25] = None if cols[25] == "-" else cols[25]
             cols[6] = cols[6].replace("_", " ")
             vadr_feature = VadrFeature(*cols)

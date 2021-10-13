@@ -6,9 +6,9 @@ from Bio import SeqIO
 from Bio.Blast.Applications import NcbiblastnCommandline
 from Bio.Blast import NCBIXML
 if __name__ == '__main__':
-    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED
+    from dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED, TRIM_SLASH
 else:
-    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED
+    from .dfv_warnings import INFO_QUERY_MODIFIED, INFO_SCAFFOLDING_ENABLED, TRIM_TERMINAL_N, SEQUENCE_RENAMED, TRIM_SLASH
 
 
 import logging
@@ -31,6 +31,30 @@ class Preprocessing:
         logger.info("Quality check and preprocessing started.")
         logger.info(f"Query: {os.path.basename(self.query_fasta)}")
         logger.info(f"Reference: {os.path.basename(self.subject_fasta)}")
+
+    def trim_slash_from_query(self):
+        out_fasta = os.path.join(self.work_dir, "query_slash_trimmed.fa")
+        R = list(SeqIO.parse(self.query_fasta, "fasta"))
+        len_trimmed = 0
+        len_original = 0
+        str_output = ""
+        flag_slash_trimmed = False
+        seq_id_original = []
+        for r in R:
+            seq_original = str(r.seq).upper()
+            seq_trimmed = seq_original.strip("/")
+            len_original += len(seq_original)
+            len_trimmed += len(seq_trimmed)
+            str_output += f">{r.id}\n{seq_trimmed}\n"
+        if len_trimmed != len_original:
+            logger.warning(f"Trimmed trailing '//' in the query FASTA. Length: {len_original} --> {len_trimmed}")
+            TRIM_SLASH.add(f"Length: {len_original} --> {len_trimmed}")
+            self.warnings.append(TRIM_SLASH)
+            flag_slash_trimmed = True
+        if flag_slash_trimmed:
+            with open(out_fasta, "w") as f:
+                f.write(str_output)
+            self.query_fasta = out_fasta 
 
     def trim_N_from_query(self):
         out_fasta = os.path.join(self.work_dir, "query_N_trimmed.fa")
@@ -267,6 +291,7 @@ def preprocess_contigs(input_fasta, work_dir, output_fasta=None, reference_fasta
     scaffolding = not disable_scaffolding
 
     pp = Preprocessing(input_fasta, reference_fasta, work_dir, modify_query_fasta)
+    pp.trim_slash_from_query()
     pp.trim_N_from_query()
     while not pp.converged:
         pp.make_query_and_subject()
