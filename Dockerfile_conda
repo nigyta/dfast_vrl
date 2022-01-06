@@ -1,13 +1,12 @@
-# base image
-FROM ubuntu:20.04
+FROM continuumio/miniconda3:4.9.2 
 
-# Modified from docker://staphb/vadr
-
+# Modified from staphb/vadr
+# https://hub.docker.com/r/staphb/vadr/dockerfile
 
 # metadata - optional, but highly recommended
-LABEL base.image="ubuntu:20.04"
+LABEL base.image="continuumio/miniconda3:4.8.2"
 LABEL dockerfile.version="1"
-LABEL software="VADR"
+LABEL software="VADR and a converter script for DDBJ"
 LABEL software.version=${VADR_VERSION}
 LABEL description="This software does viral annotations"
 LABEL website="https://github.com/ncbi/vadr"
@@ -15,16 +14,6 @@ LABEL license="https://github.com/ncbi/vadr/blob/master/LICENSE"
 LABEL maintainer1="Anders Goncalves da Silva"
 LABEL maintainer2="Curtis Kapsak"
 LABEL maintainer3="Yasuhiro Tanizawa"
-
-# install dependencies via apt-get. Clean up apt garbage 
-RUN apt-get update && apt-get install -y \
- wget \
- perl \
- curl \
- unzip \
- build-essential \
- autoconf && \
- apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
 
 
 ENV VADR_VERSION="1.2"\
@@ -43,46 +32,48 @@ ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
  VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
 
 ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB \
- PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
+PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
+
+RUN  conda install -y -c biobuilds perl=5.22 
+RUN  conda install -y curl unzip autoconf automake make 
+RUN  conda install -y -c bioconda  perl-inline-c perl-lwp-simple 
+RUN conda install -c conda-forge -y cxx-compiler
 
 
-# install and/or setup more things. Make /data for use as a working dir
+
+
+RUN conda install -y bash
 RUN mkdir -p ${VADRINSTALLDIR} && \
- cd ${VADRINSTALLDIR} &&\
- wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh &&\
- bash vadr-install.sh linux
+  cd ${VADRINSTALLDIR} && \
+  wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh && \
+  cd ${VADRINSTALLDIR} && \
+  bash vadr-install.sh linux
 
-# install the latest corona virus models
-# RUN wget -O vadr-models-sarscov2.tar.gz https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/c oronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
 
 RUN cd ${VADRINSTALLDIR} && \
  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_CORONA_MODELS_VERSION}/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  tar -xf vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  rm -f vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz
 
-RUN apt-get install -y python3.8 python3-pip git && \
-  apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
-  pip3 install biopython && \
-  cd /usr/bin && \
-  ln -s python3.8 python && \
-  ln -s pip3 pip
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=3
+RUN echo "export LS_OPTIONS='--color=auto'" >> /root/.bashrc && \
+  echo "alias ls='ls $LS_OPTIONS" >> /root/.bashrc && \
+  echo "alias ll='ls $LS_OPTIONS -l'" >> /root/.bashrc && \
+  echo "alias la='ls $LS_OPTIONS -al'" >> /root/.bashrc && \
+  eval "`dircolors`"
+
+RUN conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78
+RUN conda install -y git
+ARG UPDATE_ME_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
   ln -s /dfast_vrl/dfast_vrl 
 
+
 # set working directory
 WORKDIR /data
 
-RUN dfast_vrl --version 
+RUN bash 
 
-# TO BE MODIFIED
-#docker run -it --rm nigyta/dfast_vrl:latest bash
-#wget https://repo.anaconda.com/miniconda/Miniconda3-py39_4.9.2-Linux-x86_64.sh
-#sh Miniconda3-py39_4.9.2-Linux-x86_64.sh -b
-#eval "$(/root/miniconda3/bin/conda shell.bash hook)"
-#conda install -y -c bioconda minimap2 snpeff
-#snpEff download  NC_045512.2
-# datadir= /root/miniconda3/share/snpeff-5.0-1/data
+

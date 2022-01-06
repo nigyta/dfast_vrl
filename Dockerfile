@@ -25,8 +25,8 @@ RUN apt-get update && apt-get install -y \
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
 
 
-ENV VADR_VERSION="1.3"\
-  VADR_CORONA_MODELS_VERSION="1.3-1" \
+ENV VADR_VERSION="1.4"\
+  VADR_CORONA_MODELS_VERSION="1.3-2" \
   LC_ALL=C \
   VADRINSTALLDIR=/opt/vadr
 
@@ -77,7 +77,7 @@ RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64
 
 ENV PATH=/miniconda3/bin:$PATH
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.0
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \

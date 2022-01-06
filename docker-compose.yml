@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
     app:
-        image: nigyta/dfast_vrl:1.3-0.1
+        image: nigyta/dfast_vrl:latest
         command: tail -f /dev/null
         volumes:
             - .:/dfast_vrl
