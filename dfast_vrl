@@ -13,8 +13,10 @@ from dfv.genbank2fasta import gbk2fasta
 from dfv.preprocessing import preprocess_contigs
 from dfv.detect_variants import detect_variants
 # from dfv.common import get_logger, LogConfig
+from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file
 
-dfv_version = "1.4-0.1"
+
+dfv_version = "1.5-0.1"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -144,71 +146,21 @@ vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_w
 output_gbk = os.path.join(work_dir, "annotation.gbk")
 output_fasta = os.path.join(work_dir, "genome.fna")
 
-metadata_file_copy = os.path.join(work_dir, "metadata.txt")
-if args.metadata_file is None:
-    # Create dummy metadata file
-    with open(metadata_file_copy, "w") as f:
-        f.write("projectType\tvrl\n")
-else:
-    shutil.copy(args.metadata_file, metadata_file_copy)
 
-def get_isolate(metadata_file, args):
-    metadata = {}
-    for line in open(metadata_file):
-        key, value = line.strip("\n").split("\t")
-        metadata[key] = value
-    isolate_from_metadata_file = metadata.get("isolate")
-    if args.isolate:
-        isolate = args.isolate
-        mss_file_prefix = isolate.replace("/", "_")
-        metadata["isolate"] = isolate
-        with open(metadata_file, "w") as f:
-            for key, value in metadata.items():
-                f.write(f"{key}\t{value}\n")
-    elif isolate_from_metadata_file:
-        isolate = isolate_from_metadata_file
-        mss_file_prefix = isolate.replace("/", "_")
+metadata_file = copy_or_create_metadata_file(work_dir, args)
 
-    else:
-        isolate = "unspecified_isolate"
-        mss_file_prefix = "DDBJ"
-    return isolate, mss_file_prefix
 
-isolate, mss_file_prefix = get_isolate(metadata_file_copy, args)
+
+isolate, mss_file_prefix = get_isolate(metadata_file, args)
 output_gbk, vadr_report, vadr_warnings = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate)
 
 
-def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA"):
-    lines = open(metadata_file).readlines()
-    ret = ""
-    for line in lines:
-        key, value = line.strip("\n").split("\t", 1)
-        if not (key in ["ff_definition", "seqStatus"]):
-            ret += line
-    if seq_status == "complete":
-        ret += f"seqStatus\t{seq_status}\n"
-        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, complete genome\n"
-    elif seq_status == "nearly complete":
-        ret += f"seqStatus\t{seq_status}\n"
-        ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, nearly complete genome\n"
-    elif seq_status == "draft":
-        if number_of_sequence == 1:
-            ret += f"seqStatus\t{seq_status}\n"
-            ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, partial genome\n"
-        else:
-            ret += f"seqStatus\t{seq_status}\n"
-            ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, draft genome, @@[entry]@@\n"
-    else:
-        raise AssertionError
-    with open(metadata_file, "w") as f:
-        f.write(ret)
-
 seq_status = vadr_report["vadr"].get("seq_status", "")
 number_of_sequence = vadr_report["vadr"].get("number_of_sequence", 1)
-update_metadata_file(metadata_file_copy, seq_status, number_of_sequence, mol_type="RNA")
+update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA")
 
 
-mss = MSS2(output_gbk, metadata_file_copy)
+mss = MSS2(output_gbk, metadata_file)
 mss.convert(work_dir, mss_file_prefix)
 gbk2fasta(output_gbk, output_fasta)
 

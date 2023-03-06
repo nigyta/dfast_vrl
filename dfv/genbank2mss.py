@@ -59,7 +59,7 @@ class MSS2():
 
         self.createSeqFile(fastaFileName)
         self.createTSV(annotationFileName)
-        logger.debug("Created DDBJ data submission files")
+        logger.info("Created DDBJ data submission files")
 
 
     def createSeqFile(self, outputFileName):
@@ -72,7 +72,7 @@ class MSS2():
             for record in records:
                 f.write(_toFasta(record))
                 f.write("//\n")
-        logger.debug("\tCreated DDBJ seq file. :%s" % outputFileName)
+        logger.info("\tCreated DDBJ seq file. :%s", outputFileName)
 
     def createTSV(self, outputFileName):
 
@@ -144,7 +144,7 @@ class MSS2():
         out = "\n".join(["\t".join(cols) for cols in ret]) + "\n"
         with open(outputFileName, "w") as f:
             f.write(out)
-        logger.debug("\tCreated DDBJ annt file. :%s" % outputFileName)
+        logger.info("\tCreated DDBJ ann file. :%s", outputFileName)
 
 
 if __name__ == '__main__':

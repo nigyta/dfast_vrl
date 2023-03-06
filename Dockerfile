@@ -14,74 +14,70 @@ LABEL license="https://github.com/ncbi/vadr/blob/master/LICENSE"
 LABEL maintainer="Yasuhiro Tanizawa"
 
 # install dependencies via apt-get. Clean up apt garbage 
-RUN apt-get update && apt-get install -y \
- wget \
- perl \
- curl \
- unzip \
- build-essential \
- git \
- autoconf && \
- apt-get install -y libinline-c-perl liblwp-protocol-https-perl 
+RUN apt-get update && apt-get install -y wget perl curl unzip build-essential git autoconf && \
+ apt-get install -y libinline-c-perl liblwp-protocol-https-perl zlib1g-dev
 
 
-ENV VADR_VERSION="1.4"\
-  VADR_CORONA_MODELS_VERSION="1.3-2" \
+ENV VADR_VERSION="1.5"\
   LC_ALL=C \
   VADRINSTALLDIR=/opt/vadr
 
 ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
- VADRMODELDIR=$VADRINSTALLDIR/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION} \
+ VADRMODELDIR=$VADRINSTALLDIR \
  VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries \
  VADREASELDIR=$VADRINSTALLDIR/infernal/binaries \
  VADRHMMERDIR=$VADRINSTALLDIR/hmmer/binaries \
  VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel \
  VADRSEQUIPDIR=$VADRINSTALLDIR/sequip \
  VADRFASTADIR=$VADRINSTALLDIR/fasta/bin \
- VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
+ VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin \
+ VADRMINIMAP2DIR=$VADRINSTALLDIR/minimap2
+
 
 ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB \
  PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
 
 
-# install and/or setup more things. Make /data for use as a working dir
+# install VADR
 RUN mkdir -p ${VADRINSTALLDIR} && \
  cd ${VADRINSTALLDIR} &&\
- wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh &&\
+ wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh && \
  bash vadr-install.sh linux
 
-# install the latest corona virus models
-# RUN wget -O vadr-models-sarscov2.tar.gz https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/c oronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
+
+
+RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
+  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
+  eval "$(/miniconda3/bin/conda shell.bash hook)" && \
+  conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 pandas && \
+  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh 
+
+ENV PATH=/miniconda3/bin:$PATH
+
+
+# install VADR virus models
+ENV VADR_CORONA_MODELS_VERSION="1.3-2" \
+  VADR_MPXV_MODELS_VERSION="1.4.2-1"
 
 RUN cd ${VADRINSTALLDIR} && \
  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_CORONA_MODELS_VERSION}/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  tar -xf vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  rm -f vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz
 
-# RUN apt-get install -y python3.8 python3-pip git && \
-#   apt-get autoclean && rm -rf /var/lib/apt/lists/* && \
-#   pip3 install biopython && \
-#   cd /usr/bin && \
-#   ln -s python3.8 python && \
-#   ln -s pip3 pip
+RUN cd ${VADRINSTALLDIR} && \
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/mpxv/${VADR_MPXV_MODELS_VERSION}/vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz
 
-RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
-  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
-  eval "$(/miniconda3/bin/conda shell.bash hook)" && \
-  conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 && \
-  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh 
-  # && \
-  # cd /usr/bin && \
-  # ln -s /root/miniconda3/bin/python3.8 python && \
-  # ln -s /root/miniconda3/bin/pip3 pip
-
-ENV PATH=/miniconda3/bin:$PATH
 
 ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.0
+
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
-  ln -s /dfast_vrl/dfast_vrl 
+  ln -s /dfast_vrl/dfast_vrl \
+  ln -s /dfast_vrl/vadr2mss.py
+
 
 # set working directory
 WORKDIR /data
