@@ -3,7 +3,7 @@ version: '3.7'
 services:
 
     app:
-        image: nigyta/dfast_vrl_dev:latest
+        image: nigyta/dfast_vrl:latest
         build:
             context: .
         command: tail -f /dev/null

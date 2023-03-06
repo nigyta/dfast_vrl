@@ -5,7 +5,7 @@ class Mpox():
     length = 200000
 
 class Sarscov2():
-    command = "v-annotate.pl --split --cpu {cpu} --glsearch -s -r --nomisc --mkey sarscov2 --lowsim5seq 6 --lowsim3seq 6 --alt_fail lowscore,insertnn,deletinn -f --mdir $VADRINSTALLDIR/vadr-models-sarscov2-$VADR_CORONA_MODELS_VERSION {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --glsearch -s -r --nomisc --mkey sarscov2 --lowsim5seq 6 --lowsim3seq 6 --alt_fail lowscore,insertnn,deletinn -f --mdir $VADRINSTALLDIR/vadr-models-sarscov2-$VADR_SCOV2_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
     length = 30000
 

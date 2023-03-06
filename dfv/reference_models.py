@@ -24,8 +24,9 @@ class VadrModelFeature:
             return f"{self.type}:{self.attrs['coords']}"
 
 VADR_MODEL_DIR = os.getenv("VADRMODELDIR")
+VADR_CORONA_MODELS_VERSION = os.getenv("VADR_CORONA_MODELS_VERSION")
 
-sar2_cov_2_minfo = os.path.join(VADR_MODEL_DIR, "sarscov2.minfo")
+sar2_cov_2_minfo = os.path.join(VADR_MODEL_DIR, f"vadr-models-sarscov2-{VADR_CORONA_MODELS_VERSION}", "sarscov2.minfo")
 
 
 

@@ -56,18 +56,39 @@ ENV PATH=/miniconda3/bin:$PATH
 
 
 # install VADR virus models
-ENV VADR_CORONA_MODELS_VERSION="1.3-2" \
-  VADR_MPXV_MODELS_VERSION="1.4.2-1"
+ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
+  VADR_MPXV_MODELS_VERSION="1.4.2-1" \
+  VADR_RSV_MODELS_VERSION="1.5-2" \
+  VADR_COX1_MODELS_VERSION="1.2-1" \
+  VADR_CORONA_MODELS_VERSION="1.3-3"
 
 RUN cd ${VADRINSTALLDIR} && \
- wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_CORONA_MODELS_VERSION}/vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
- tar -xf vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
- rm -f vadr-models-sarscov2-${VADR_CORONA_MODELS_VERSION}.tar.gz
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_SCOV2_MODELS_VERSION}/vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz
 
 RUN cd ${VADRINSTALLDIR} && \
  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/mpxv/${VADR_MPXV_MODELS_VERSION}/vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
  tar -xf vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
  rm -f vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz
+
+RUN cd ${VADRINSTALLDIR} && \
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/rsv/${VADR_RSV_MODELS_VERSION}/vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz
+
+RUN cd ${VADRINSTALLDIR} && \
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/cox1/${VADR_COX1_MODELS_VERSION}/vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz
+
+RUN cd ${VADRINSTALLDIR} && \
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/coronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz
+
+
+
 
 
 ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.0
@@ -75,7 +96,7 @@ ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.0
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
-  ln -s /dfast_vrl/dfast_vrl \
+  ln -s /dfast_vrl/dfast_vrl && \
   ln -s /dfast_vrl/vadr2mss.py
 
 

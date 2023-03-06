@@ -85,6 +85,7 @@ metadata_file = copy_or_create_metadata_file(work_dir, args)
 
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
 # TODO: implement function to check status and num of sequence 
+# TDDO: refer to .minfo file for CDSs, total length
 update_metadata_file(metadata_file, seq_status="nearly complete", number_of_sequence=1, mol_type=model.mol_type)
 
 # Convert .gbk file and metadata file into MSS format.

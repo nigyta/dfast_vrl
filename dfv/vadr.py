@@ -15,7 +15,7 @@ def run(input_file, output_dir, cpu=1):
     # cmd = f"v-annotate.pl --split --cpu {cpu} --glsearch -s -r --nomisc --mkey sarscov2 --lowsim5term 2 --lowsim3term 2 " + \
     #    f"--alt_fail lowscore,fstukcnf,insertnn,deletinn {input_file} {output_dir} -f" # --out_stk --out_afa --out_rpafa  --out_rpstk --out_allfasta "
     cmd = f"v-annotate.pl --glsearch -s -r --nomisc --mkey sarscov2 --lowsim5seq 6 --lowsim3seq 6 " + \
-       f"--alt_fail lowscore,insertnn,deletinn -f {input_file} {output_dir}" # --out_stk --out_afa --out_rpafa  --out_rpstk --out_allfasta "
+       f"--alt_fail lowscore,insertnn,deletinn -f --mdir $VADRINSTALLDIR/vadr-models-sarscov2-$VADR_SCOV2_MODELS_VERSION {input_file} {output_dir}" # --out_stk --out_afa --out_rpafa  --out_rpstk --out_allfasta "
     logger.debug(f"VADR command: {cmd}")
     p = subprocess.run(cmd, shell=True, encoding="UTF-8", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logger.info(f"{'='*30}  VADR stdout  {'='*30}\n{p.stdout}\n{'='*80}\n")
