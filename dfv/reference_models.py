@@ -24,9 +24,9 @@ class VadrModelFeature:
             return f"{self.type}:{self.attrs['coords']}"
 
 VADR_MODEL_DIR = os.getenv("VADRMODELDIR")
-VADR_CORONA_MODELS_VERSION = os.getenv("VADR_CORONA_MODELS_VERSION")
+VADR_SCOV2_MODELS_VERSION = os.getenv("VADR_SCOV2_MODELS_VERSION")
 
-sar2_cov_2_minfo = os.path.join(VADR_MODEL_DIR, f"vadr-models-sarscov2-{VADR_CORONA_MODELS_VERSION}", "sarscov2.minfo")
+sar2_cov_2_minfo = os.path.join(VADR_MODEL_DIR, f"vadr-models-sarscov2-{VADR_SCOV2_MODELS_VERSION}", "sarscov2.minfo")
 
 
 
@@ -61,7 +61,7 @@ def parse_minfo_file(file_name):
             feature_info = attrs_to_dict(cols[2])
  
         else:
-            sys.stderr.write(f"Error while reading model file {sar2_cov_2_minfo}. Aborted.")
+            sys.stderr.write(f"Error while reading model file {file_name}. Aborted.")
             raise AssertionError
     return D
 
@@ -79,6 +79,12 @@ def get_reference_model(name):
 
 if __name__ == '__main__':
     D = parse_minfo_file(sar2_cov_2_minfo)
+    # D = parse_minfo_file("/opt/vadr/vadr-models-flavi/dengue.minfo")
     for key, value in D.items():
         print(key, value)
+    print("---")
+    # print(D["NC_001477"])
+    # print(D["NC_001477"][0].attrs["length"])
     # print(D["NC_045512-MW422255"])
+    print([x for x in D["NC_045512"] if x.type =="CDS"])
+    # print([x for x in D["NC_001477"] if x.type =="CDS"])

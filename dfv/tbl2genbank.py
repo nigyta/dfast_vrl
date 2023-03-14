@@ -15,7 +15,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 @dataclass
 class FeatureData():
     """
@@ -128,7 +127,7 @@ def remove_gene_feature_and_add_gene_qualifier(r):
     """
     Remove gene features and add gene qualifiers to CDSs, mat_peptides, and RNAs.
     """
-    target = ["CDS", "mat_peptide"]  # and *RNAs
+    target = ["CDS", "mat_peptide", "misc_feature", "stem_loop"]  # and *RNAs
     def _is_target(f_type):
         return f_type in target or f_type.endswith("RNA")
     

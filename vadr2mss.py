@@ -4,6 +4,9 @@ import os
 import sys
 import argparse
 
+VERSION = "0.1"
+
+
 parser = argparse.ArgumentParser(prog="vadr2mss.py")
 parser.add_argument("-i", "--input", metavar="FILE", help="Input FASTA file", required=True)
 parser.add_argument("-o", "--out_dir", metavar="FILE", help="Output Directory", required=True)
@@ -24,7 +27,9 @@ parser.add_argument(
         "--model",
         type=str,
         help="Reference model for VADR",
-        metavar="MODEL"
+        metavar="MODEL",
+        required=True,
+        choices=["mpox", "sarscov2", "corona", "RSV", "Noro", "Calici", "Dengue", "Flavi", "COX1"]
     )
 parser.add_argument(
         '--force',
@@ -48,6 +53,7 @@ from dfv.tbl2genbank import tbl2genbank
 from dfv.genbank2mss import MSS2
 from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file, get_logger
 from dfv.vadr2mss_config import models
+from dfv.check_annotation_stats import check_annotation_stats
 
 # cheking input fasta
 input_fasta = args.input
@@ -70,6 +76,8 @@ model = models[args.model]
 
 logger = get_logger(name=__name__, debug=args.debug, work_dir=work_dir)
 
+logger.info("vadr2mss started. version=%s", VERSION)
+
 # Run VADR
 vadr_out_tbl_pass, vadr_out_fasta_pass = run_vadr(input_fasta, work_dir, model, cpu=1)
 
@@ -86,7 +94,12 @@ metadata_file = copy_or_create_metadata_file(work_dir, args)
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
 # TODO: implement function to check status and num of sequence 
 # TDDO: refer to .minfo file for CDSs, total length
-update_metadata_file(metadata_file, seq_status="nearly complete", number_of_sequence=1, mol_type=model.mol_type)
+annotation_stats = check_annotation_stats(work_dir, model)
+# {'status': 'complete', 'total_length': 10735, 'model_length': 10735, 'query_coverage': '100.00%', 'qap_length': 0, 'cds_completeness': '1 / 0 / 1 [intact/partial/expected]'}
+seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["number_of_sequence"]
+logger.info("Annotation stats: %s", annotation_stats)
+update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=number_of_sequence, mol_type=model.mol_type)
+
 
 # Convert .gbk file and metadata file into MSS format.
 mss = MSS2(out_gbk_file, metadata_file)
