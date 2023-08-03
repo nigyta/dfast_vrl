@@ -66,3 +66,24 @@ Example:
 ```
 singularity exec /lustre6/public/vrl/dfast_vrl:latest.sif dfast_vrl -i SRR10903401.meta_vrl.contig.fa -m metadata.txt -o dfv_result
 ```
+
+
+### vadr2mss.py
+Pipeline for various kind of viruses.
+- Internally run VADR
+- Convert the result of VADR into DDBJ MSS file
+
+Usage:
+```
+vadr2mss.py -i INPUT.fasta -m METADATA.txt -o OUT_DIR -M MODELNAME(e.g. mpox)
+```
+
+Example using Docker:
+```
+docker run --rm -it -v $PWD/examples:/data nigyta/dfast_vrl:latest vadr2mss.py -i /data/mpox/LC756923.fasta -m /data/mpox/metadata_mpox.txt -o /data/OUT -M mpox
+```
+
+Example using Singularity (NIG supercomputer)
+```
+singularity exec /usr/local/shared_data/vrl/dfast_vrl:latest.sif vadr2mss.py -i examples/mpox/LC756923.fasta -m examples/mpox/metadata_mpox.txt -o OUT_DIR -M mpox
+```

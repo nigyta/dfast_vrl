@@ -89,7 +89,7 @@ RUN cd ${VADRINSTALLDIR} && \
 
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.2
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.3
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
