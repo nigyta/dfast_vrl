@@ -79,7 +79,7 @@ class MSS2():
         def render_feature_and_qualifiers(feature, rec_length):
             ret_feature = []
             for qualifier, value in feature.qualifiers.items():
-                if feature.type == "assembly_gap" and qualifier == "estimated_length":
+                if (feature.type == "assembly_gap" or feature.type == "gap") and qualifier == "estimated_length":
                     value = ["known"]
                 if qualifier == "locus_tag" and self.locusTagPrefix:
                     value[0] = self.locusTagPrefix + "_" + value[0].split("_")[-1]

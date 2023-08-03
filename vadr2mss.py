@@ -4,10 +4,12 @@ import os
 import sys
 import argparse
 
-VERSION = "0.1"
+VERSION = "0.2"
 
 
-parser = argparse.ArgumentParser(prog="vadr2mss.py")
+parser = argparse.ArgumentParser(prog="vadr2mss.py",
+                                 description=f'VADR2MSS: Pipeline for various kind of viruses. (ver. {VERSION})'
+                                 )
 parser.add_argument("-i", "--input", metavar="FILE", help="Input FASTA file", required=True)
 parser.add_argument("-o", "--out_dir", metavar="FILE", help="Output Directory", required=True)
 parser.add_argument(
@@ -41,6 +43,7 @@ parser.add_argument(
         action='store_true',
         help='Debug mode'
     )
+
 
 if len(sys.argv)==1:
     parser.print_help()
@@ -92,13 +95,15 @@ metadata_file = copy_or_create_metadata_file(work_dir, args)
 
 
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
-# TODO: implement function to check status and num of sequence 
-# TDDO: refer to .minfo file for CDSs, total length
+
 annotation_stats = check_annotation_stats(work_dir, model)
 # {'status': 'complete', 'total_length': 10735, 'model_length': 10735, 'query_coverage': '100.00%', 'qap_length': 0, 'cds_completeness': '1 / 0 / 1 [intact/partial/expected]'}
 seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["number_of_sequence"]
 logger.info("Annotation stats: %s", annotation_stats)
-update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=number_of_sequence, mol_type=model.mol_type)
+
+organism = model.organism if hasattr(model, "organism") else None
+    
+update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=number_of_sequence, mol_type=model.mol_type, organism=organism)
 
 
 # Convert .gbk file and metadata file into MSS format.

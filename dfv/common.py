@@ -4,18 +4,26 @@ import logging
 import sys
 
 
-def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA"):
+def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA", organism=None):
     """
     Update metadata file depending on sequence status and number of sequence
     """
 
     lines = open(metadata_file).readlines()
-    ret = ""
+    D = {}  # for metadata
     for line in lines:
         key, value = line.strip("\n").split("\t", 1)
+        D[key] = value
+
+    # Add organism if not exists
+    if "organism" not in D and organism:
+        D["organism"] = organism
+
+    ret = ""
+    for key, value in D.items():
         if not (key in ["ff_definition", "seqStatus", "mol_type"]):
-            ret += line
-    
+            ret += f"{key}\t{value}\n"
+
     ret += f"seqStatus\t{seq_status}\n"
     ret += f"mol_type\tgenomic {mol_type}\n"
     if seq_status == "complete":

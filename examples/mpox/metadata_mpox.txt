@@ -1,0 +1,29 @@
+organism	Monkeypox virus
+isolate	MPXV/Japan/NIG-xxxxx/2023
+isolation_source	pharyngeal swab
+host	Homo sapiens, female
+source_country	Japan:Shizuoka, east
+collection_date	2023-03-10
+projectType	vrl
+submitter	Tanizawa,Y.; Mishima,T.
+consrtm	Japan xxxx Open Data Consortium
+refconsrtm	Japan xxxx Open Data Consortium
+contact	Taro Iden
+email	xxxx@ddbj.nig.ac.jp
+phone	81-55-000-0000
+institute	National Institute of Genetics
+department	DNA Data Bank of Japan
+url	https://www.ddbj.nig.ac.jp/sars-cov-2
+street	1111 Yata
+city	Mishima
+state	Shizuoka
+country	Japan
+ZIP	411-8540
+assemblyMethod	Reference mapping
+sequencingTechnology	Oxford Nanopore GridION
+coverage	1200x
+reference	Whole-genome sequencing of Monkeypox virus
+author	
+year	2023
+comment	The genome was sequenced and analyzed at NIG.
+source_note	

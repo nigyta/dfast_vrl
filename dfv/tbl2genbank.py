@@ -10,7 +10,8 @@ from Bio.Seq import Seq
 from Bio.SeqFeature import SeqFeature, FeatureLocation, CompoundLocation, ExactPosition, BeforePosition, AfterPosition
 from Bio.SeqIO.InsdcIO import _insdc_location_string
 from Bio.Data.CodonTable import TranslationError
-
+from .fix_product_for_mpox import fix_product_for_mpox
+from .vadr2mss_config import Mpox
 import logging
 
 logger = logging.getLogger(__name__)
@@ -147,22 +148,40 @@ def remove_gene_feature_and_add_gene_qualifier(r):
             logger.warning(f"No gene features found for {str(feature.location)}")
     r.features = other_features
 
-def add_translation_to_cds(r):
+def add_qualifiers_to_cds_feature(r, model):
     """
-    Add translation qualifier to CDS features
+    Add translation qualifier to CDS features, as well as transl_table and codon_start.
+    Product names will be modified to curated names (Mpox)
     """
+
     for feature in r.features:
         if feature.type != "CDS":
             continue
+        
+        # add tranl_table
+        if "codon_start" not in feature.qualifiers:
+            feature.qualifiers["codon_start"] = [1]
+        transl_table = model.transl_table if hasattr(model, "transl_table") else 1
+        if "transl_table" not in feature.qualifiers:
+            feature.qualifiers["transl_table"] = [transl_table]
+
         try:
             translation = feature.translate(r.seq)
         except TranslationError as e:
             logger.warning(str(feature))
             logger.warning(f"length: {len(feature)}")
-            logger.warning("translation error. will try to translate again with 'cds=false'")
+            logger.warning("translation error. Will try to translate again with 'cds=false'")
             print(e)
             translation = feature.translate(r.seq, cds=False).rstrip("*")
         feature.qualifiers["translation"] = [translation]
+
+        # fix product
+        if model.__name__ == "Mpox":  # isinstance(model, Mpox):
+            prodict_original = feature.qualifiers.get("product", [""])[0]
+            product_fixed = fix_product_for_mpox(prodict_original)
+            if prodict_original != product_fixed:
+                logger.debug(f"Fixing product name for Mpox annotation. {prodict_original} --> {product_fixed}")
+            feature.qualifiers["product"] = [product_fixed]
 
 
 def add_gaps(r, min_length=10):
@@ -195,7 +214,7 @@ def tbl2genbank(tbl_file, fasta_file, out_gbk_file, model):
     for r in R:
         r.annotations["molecule_type"] = model.mol_type
         remove_gene_feature_and_add_gene_qualifier(r)
-        add_translation_to_cds(r)
+        add_qualifiers_to_cds_feature(r, model)  # model is provided to specify transl_table number.
         add_gaps(r)
         sort_features(r)
     logger.info("Writing .gbk file [%s]", out_gbk_file)
