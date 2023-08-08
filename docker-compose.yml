@@ -10,5 +10,7 @@ services:
         volumes:
             - .:/dfast_vrl
             - ../test_data:/data
+            - ../vadr_models:/vadr_models
         environment:
             - TZ=Asia/Tokyo            
+            - VADRMODELDIR=/vadr_models

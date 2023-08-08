@@ -4,7 +4,7 @@ import os
 import sys
 import argparse
 
-VERSION = "0.2"
+VERSION = "0.3"
 
 
 parser = argparse.ArgumentParser(prog="vadr2mss.py",
@@ -67,6 +67,7 @@ if not os.path.exists(input_fasta):
 
 # setting output directory
 work_dir = args.out_dir
+work_dir = work_dir.rstrip("/")
 if os.path.exists(work_dir) and not args.force:
     if not args.force:
         sys.stderr.write("vadr2mss.py: error: Output directory already exists. Use '--force' to overwrite.\n")

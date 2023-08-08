@@ -68,14 +68,21 @@ singularity exec /lustre6/public/vrl/dfast_vrl:latest.sif dfast_vrl -i SRR109034
 ```
 
 
-### vadr2mss.py
+## vadr2mss.py
 Pipeline for various kind of viruses.
-- Internally run VADR
-- Convert the result of VADR into DDBJ MSS file
+- Internally invokes VADR
+- Converts the result of VADR into DDBJ MSS file
 
 Usage:
 ```
 vadr2mss.py -i INPUT.fasta -m METADATA.txt -o OUT_DIR -M MODELNAME(e.g. mpox)
+```
+
+
+To test `vadr2mss.py` using the Docker/Singularity container, download the sample files from github.
+```
+git clone https://github.com/nigyta/dfast_vrl.git
+cd dfast_vrl
 ```
 
 Example using Docker:
