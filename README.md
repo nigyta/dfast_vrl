@@ -95,7 +95,7 @@ docker run -it --rm -v $PWD/vadr_models:/vadr_models nigyta/dfast_vrl:1.5-0.3 /d
 
 Example using Docker:
 ```
-docker run -it --rm -v $PWD/vadr_models:/vadr_models -v $PWD/examples:/data nigyta/dfast_vrl:1.5-0.3 vadr2mss.py -i /data/mpox/LC756923.fasta -m /data/mpox/metadata_mpox.txt -o /data/OUT -M mpox
+docker run -it --rm -v $PWD/vadr_models:/vadr_models -v $PWD/examples:/data nigyta/dfast_vrl:latest vadr2mss.py -i /data/mpox/LC756923.fasta -m /data/mpox/metadata_mpox.txt -o /data/OUT -M mpox
 ```
 
 Example using Singularity (NIG supercomputer)
