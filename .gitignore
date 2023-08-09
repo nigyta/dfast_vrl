@@ -3,6 +3,8 @@ REF/
 test_dfast_vrl/
 test/
 .DS_Store
+vadr_models
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

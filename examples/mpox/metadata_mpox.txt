@@ -1,6 +1,9 @@
 organism	Monkeypox virus
 isolate	MPXV/Japan/NIG-xxxxx/2023
 isolation_source	pharyngeal swab
+bioproject	PRJDB9999
+biosample	SAMD00000000
+sra	DRR00000
 host	Homo sapiens, female
 source_country	Japan:Shizuoka, east
 collection_date	2023-03-10
