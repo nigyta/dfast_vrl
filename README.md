@@ -72,6 +72,7 @@ singularity exec /lustre6/public/vrl/dfast_vrl:latest.sif dfast_vrl -i SRR109034
 Pipeline for various kind of viruses.
 - Internally invokes VADR
 - Converts the result of VADR into DDBJ MSS file
+- Requires VADR model data to be downloaded before running the pipeline (with `download_vadr_models.sh` script)
 
 Usage:
 ```
@@ -85,6 +86,13 @@ git clone https://github.com/nigyta/dfast_vrl.git
 cd dfast_vrl
 ```
 
+Download VADR model data
+```
+mkdir vadr_models
+docker run -it --rm -v $PWD/vadr_models:/vadr_models nigyta/dfast_vrl:1.5-0.3 /dfast_vrl/download_vadr_models.sh
+```
+
+
 Example using Docker:
 ```
 docker run --rm -it -v $PWD/examples:/data nigyta/dfast_vrl:latest vadr2mss.py -i /data/mpox/LC756923.fasta -m /data/mpox/metadata_mpox.txt -o /data/OUT -M mpox
@@ -92,5 +100,5 @@ docker run --rm -it -v $PWD/examples:/data nigyta/dfast_vrl:latest vadr2mss.py -
 
 Example using Singularity (NIG supercomputer)
 ```
-singularity exec /usr/local/shared_data/vrl/dfast_vrl:latest.sif vadr2mss.py -i examples/mpox/LC756923.fasta -m examples/mpox/metadata_mpox.txt -o OUT_DIR -M mpox
+singularity exec -B $PWD/vadr_models:/vadr_models /usr/local/shared_data/vrl/dfast_vrl:latest.sif vadr2mss.py -i examples/mpox/LC756923.fasta -m examples/mpox/metadata_mpox.txt -o OUT_DIR -M mpox
 ```
