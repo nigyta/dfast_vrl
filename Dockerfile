@@ -1,10 +1,10 @@
 # base image
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 # Modified from docker://staphb/vadr
 
 # metadata - optional, but highly recommended
-LABEL base.image="ubuntu:20.04"
+LABEL base.image="ubuntu:22.04"
 LABEL dockerfile.version="1"
 LABEL software="VADR"
 LABEL software.version=${VADR_VERSION}
@@ -60,7 +60,9 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
   VADR_MPXV_MODELS_VERSION="1.4.2-1" \
   VADR_RSV_MODELS_VERSION="1.5-2" \
   VADR_COX1_MODELS_VERSION="1.2-1" \
-  VADR_CORONA_MODELS_VERSION="1.3-3"
+  VADR_CORONA_MODELS_VERSION="1.3-3" \
+  VADR_FLAVI_MODELS_VERSION="1.2-1" \
+  VADR_CALCI_MODELS_VERSION="1.2-1"
 
 # For DFAST_VRL, the reference data will be downloaded under VADRINSTALLDIR.
 RUN cd ${VADRINSTALLDIR} && \
@@ -91,7 +93,7 @@ RUN cd ${VADRINSTALLDIR} && \
 
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.4
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \

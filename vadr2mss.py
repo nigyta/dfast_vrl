@@ -3,8 +3,9 @@
 import os
 import sys
 import argparse
-
-VERSION = "0.3"
+import logging
+import json
+VERSION = "0.4"
 
 
 parser = argparse.ArgumentParser(prog="vadr2mss.py",
@@ -54,7 +55,7 @@ args = parser.parse_args()
 from dfv.vadr_generic import main as run_vadr
 from dfv.tbl2genbank import tbl2genbank
 from dfv.genbank2mss import MSS2
-from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file, get_logger
+from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file  # , get_logger
 from dfv.vadr2mss_config import models
 from dfv.check_annotation_stats import check_annotation_stats
 
@@ -75,15 +76,39 @@ if os.path.exists(work_dir) and not args.force:
 else:
     os.makedirs(work_dir, exist_ok=True)
 
-# setting model to used
-model = models[args.model]
 
-logger = get_logger(name=__name__, debug=args.debug, work_dir=work_dir)
+def get_logger(name=None, debug=False):
+    if debug:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
 
+    logger = logging.getLogger(__name__)
+    sh = logging.StreamHandler(stream=sys.stdout)
+    log_file = os.path.join(work_dir, "dfast_vrl.log")
+    fh = logging.FileHandler(log_file, mode="w", encoding="utf-8", delay=True)
+
+    logging.basicConfig(
+        format="[%(asctime)s] [%(levelname)s] %(message)s",
+        level=log_level,
+        handlers=[sh, fh]) 
+    logger = logging.getLogger(__name__)
+    return logger
+
+logger = get_logger(name=__name__, debug=args.debug)
 logger.info("vadr2mss started. version=%s", VERSION)
 
+
+# setting model to used
+model = models[args.model]
+logger.info("Selected VADR Model: %s", args.model)
+
+
+
+
 # Run VADR
-vadr_out_tbl_pass, vadr_out_fasta_pass = run_vadr(input_fasta, work_dir, model, cpu=1)
+vadr_dir = os.path.join(work_dir, "vadr")
+vadr_out_tbl_pass, vadr_out_fasta_pass = run_vadr(input_fasta, vadr_dir, model, cpu=1)
 
 # Convert VADR result into .gbk
 out_gbk_file = os.path.join(work_dir, "annotation.gbk")
@@ -97,7 +122,7 @@ metadata_file = copy_or_create_metadata_file(work_dir, args)
 
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
 
-annotation_stats = check_annotation_stats(work_dir, model)
+annotation_stats = check_annotation_stats(work_dir, vadr_dir, model)
 # {'status': 'complete', 'total_length': 10735, 'model_length': 10735, 'query_coverage': '100.00%', 'qap_length': 0, 'cds_completeness': '1 / 0 / 1 [intact/partial/expected]'}
 seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["number_of_sequence"]
 logger.info("Annotation stats: %s", annotation_stats)
@@ -110,3 +135,10 @@ update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=nu
 # Convert .gbk file and metadata file into MSS format.
 mss = MSS2(out_gbk_file, metadata_file)
 mss.convert(work_dir, mss_file_prefix)
+
+
+out_report_file = os.path.join(work_dir, "dfv_report.json")
+logger.info(f"Writing report json to {out_report_file}")
+with open(out_report_file, "w") as f:
+    json.dump({"annotation": annotation_stats}, f, indent=4)
+

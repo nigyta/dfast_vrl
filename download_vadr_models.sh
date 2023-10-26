@@ -9,6 +9,8 @@ if [ -z ${VADRMODELDIR} ]; then
   VADR_RSV_MODELS_VERSION="1.5-2"
   VADR_COX1_MODELS_VERSION="1.2-1"
   VADR_CORONA_MODELS_VERSION="1.3-3"
+  VADR_FLAVI_MODELS_VERSION="1.2-1"
+  VADR_CALCI_MODELS_VERSION="1.2-1"
 
 else
   # For environment within the docker container
@@ -37,3 +39,16 @@ fi
  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/coronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  tar -xf vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
  rm -f vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz
+
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/flaviviridae/${VADR_FLAVI_MODELS_VERSION}/vadr-models-flavi-${VADR_FLAVI_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-flavi-${VADR_FLAVI_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-flavi-${VADR_FLAVI_MODELS_VERSION}.tar.gz
+
+
+ wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/caliciviridae/${VADR_CALCI_MODELS_VERSION}/vadr-models-calici-${VADR_CALCI_MODELS_VERSION}.tar.gz && \
+ tar -xf vadr-models-calici-${VADR_CALCI_MODELS_VERSION}.tar.gz && \
+ rm -f vadr-models-calici-${VADR_CALCI_MODELS_VERSION}.tar.gz
+
+ 
+
+

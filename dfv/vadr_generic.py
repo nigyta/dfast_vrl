@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 #     }
 
 
-def main(input_file, output_dir,model, cpu=1):
+def main(input_file, output_dir, model, cpu=1):
 
     logging.info("Running VADR...")
     cmd = model.command

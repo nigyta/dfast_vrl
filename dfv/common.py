@@ -1,6 +1,6 @@
 import os
 import shutil
-import logging
+# from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG, INFO
 import sys
 
 
@@ -81,20 +81,25 @@ def copy_or_create_metadata_file(work_dir, args):
     return metadata_file_copy
 
 
-def get_logger(name=None, debug=False, work_dir="."):
-    if debug:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
+# def get_logger(name=None, debug=False, work_dir="."):
+#     if debug:
+#         log_level = DEBUG
+#     else:
+#         log_level = INFO
+#     logger = getLogger(name)
+#     logger.setLevel(log_level)
+#     log_format = "[%(asctime)s] [%(levelname)s] %(message)s"
+#     sh = StreamHandler(stream=sys.stdout)
+#     sh.setFormatter(Formatter(log_format))
+#     sh.setLevel(log_level)
+#     log_file = os.path.join(work_dir, "dfast_vrl.log")
+#     fh = FileHandler(filename=log_file, mode="w", encoding="utf-8", delay=True)
+#     fh.setFormatter(Formatter(log_format))
+#     fh.setLevel(log_level)
+#     logger.addHandler(fh)
+#     logger.addHandler(sh)
+#     logger.debug("Creating log file: %s, %s", log_file, name)
 
-    logger = logging.getLogger(__name__)
-    sh = logging.StreamHandler(stream=sys.stdout)
-    log_file = os.path.join(work_dir, "dfast_vrl.log")
-    fh = logging.FileHandler(log_file, mode="w", encoding="utf-8", delay=True)
 
-    logging.basicConfig(
-        format="[%(asctime)s] [%(levelname)s] %(message)s",
-        level=log_level,
-        handlers=[sh, fh]) 
-    logger = logging.getLogger(__name__)
-    return logger
+#     return logger
+

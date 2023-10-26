@@ -75,9 +75,9 @@ def get_query_info(out_dir):
                 num_cds_intact += 1
     return num_sequence, query_total_length, gap_length, num_cds_intact, num_cds_partial
 
-def check_annotation_stats(out_dir, model):
+def check_annotation_stats(out_dir, vadr_dir, model):
     minfo_file = get_minfo_file(model)
-    model_accession, model_length, model_num_cds = get_model_info(out_dir, minfo_file)
+    model_accession, model_length, model_num_cds = get_model_info(vadr_dir, minfo_file)
     number_of_sequence, query_total_length, gap_length, num_cds_intact, num_cds_partial = get_query_info(out_dir)
     num_cds_missing = model_num_cds - num_cds_intact - num_cds_partial
     query_coverage = query_total_length / model_length
