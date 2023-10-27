@@ -42,7 +42,9 @@ ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEA
 RUN mkdir -p ${VADRINSTALLDIR} && \
  cd ${VADRINSTALLDIR} &&\
  wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh && \
- bash vadr-install.sh linux
+ bash vadr-install.sh linux && \
+ rm -r $VADRINSTALLDIR/vadr-models-calici $VADRINSTALLDIR/vadr-models-flavi/
+
 
 
 
@@ -50,8 +52,7 @@ RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64
   sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
   eval "$(/miniconda3/bin/conda shell.bash hook)" && \
   conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 pandas && \
-  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh 
-
+  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh
 ENV PATH=/miniconda3/bin:$PATH
 
 
@@ -65,10 +66,11 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
   VADR_CALCI_MODELS_VERSION="1.2-1"
 
 # For DFAST_VRL, the reference data will be downloaded under VADRINSTALLDIR.
-RUN cd ${VADRINSTALLDIR} && \
- wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_SCOV2_MODELS_VERSION}/vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
- tar -xf vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
- rm -f vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz
+# RUN cd ${VADRINSTALLDIR} && \
+#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_SCOV2_MODELS_VERSION}/vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
+#  tar -xf vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
+#  rm -f vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz
+# As of 2023.10.28, reference data have been removed from the container
 
 # For VADR2MSS. Currently, the reference data are not included in the container.
 # RUN cd ${VADRINSTALLDIR} && \
@@ -93,7 +95,7 @@ RUN cd ${VADRINSTALLDIR} && \
 
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.2
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
