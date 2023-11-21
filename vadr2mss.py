@@ -108,7 +108,7 @@ logger.info("Selected VADR Model: %s", args.model)
 
 # Run VADR
 vadr_dir = os.path.join(work_dir, "vadr")
-vadr_out_tbl_pass, vadr_out_fasta_pass = run_vadr(input_fasta, vadr_dir, model, cpu=1)
+vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings = run_vadr(input_fasta, vadr_dir, model, cpu=1)
 
 # Convert VADR result into .gbk
 out_gbk_file = os.path.join(work_dir, "annotation.gbk")

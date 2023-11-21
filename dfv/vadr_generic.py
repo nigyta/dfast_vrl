@@ -18,25 +18,31 @@ def main(input_file, output_dir, model, cpu=1):
     cmd = model.command
     cmd = cmd.format(fasta=input_file, outdir=output_dir, cpu=cpu)
 
+    warnings = {}
+
     logger.debug(f"VADR command: {cmd}")
     p = subprocess.run(cmd, shell=True, encoding="UTF-8", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     logger.info(f"{'='*30}  VADR stdout  {'='*30}\n{p.stdout}\n{'='*80}\n")
     if p.stderr:
         logger.info(f"{'='*30} VADR stderr {'='*30}\n{p.stderr}\n{'='*80}\n")
     logger.debug(f"VADR return status={p.returncode}")
-    vadr_out_tbl_pass, vadr_out_fasta_pass = get_vadr_tbl_and_fasta(output_dir)
+    vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings = get_vadr_tbl_and_fasta(output_dir)
+    warnings.update(vadr_warnings)
     logger.info(f"VADR finished. Output files were generated in {output_dir}")
-    return vadr_out_tbl_pass, vadr_out_fasta_pass
+    return vadr_out_tbl_pass, vadr_out_fasta_pass, warnings
 
 def get_vadr_tbl_and_fasta(output_dir):
+    vadr_warnings = {}
     vadr_prefix = os.path.basename(output_dir)  # same as the directory name
     vadr_out_tbl_pass = os.path.join(output_dir, vadr_prefix + ".vadr.pass.tbl")
     vadr_out_fasta_pass = os.path.join(output_dir, vadr_prefix + ".vadr.pass.fa")
-    if not (os.path.exists(vadr_out_fasta_pass)) or os.path.getsize(vadr_out_fasta_pass) == 0:
-        logger.error("VADR failed. Output file is empty. [%s]", vadr_out_fasta_pass)
-        logger.error("See fail file. [%s]", vadr_out_fasta_pass.replace(".pass.", ".fail."))
-        exit(1)
-    return vadr_out_tbl_pass, vadr_out_fasta_pass
+    vadr_out_fail_list = os.path.join(output_dir, vadr_prefix + ".vadr.fail.list")
+    if os.path.getsize(vadr_out_fasta_pass) == 0 and os.path.getsize(vadr_out_fail_list) > 0:
+        vadr_out_tbl_pass = vadr_out_tbl_pass.replace(".pass.", ".fail.")
+        vadr_out_fasta_pass = vadr_out_fasta_pass.replace(".pass.", ".fail.")
+        logger.warning("VADR failed. Will use [%s] for downstream processes.", vadr_out_tbl_pass)
+        # logger.error("See fail file. [%s]", vadr_out_fasta_pass.replace(".pass.", ".fail."))
+    return vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings
 
 
 if __name__ == '__main__':

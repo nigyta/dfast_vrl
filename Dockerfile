@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y wget perl curl unzip build-essential gi
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl zlib1g-dev
 
 
-ENV VADR_VERSION="1.5"\
+ENV VADR_VERSION="1.6"\
   LC_ALL=C \
   VADRINSTALLDIR=/opt/vadr
 
@@ -95,7 +95,7 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
 
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1.2
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=2
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \

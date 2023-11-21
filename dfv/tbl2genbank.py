@@ -108,6 +108,12 @@ def parse_tbl(tbl_file, fasta_file):
     current_record = None
     rows = []
     for line in open(tbl_file):
+        if line.strip("\n") == "":
+            # tbl file for failed job has an empty line at the end of features
+            features = _create_seq_features(rows)  # create SeqFeature list from rows
+            current_record.features = features
+            yield current_record
+            return   
         if line.startswith(">") and "\t" not in line:
             if current_record:
                 features = _create_seq_features(rows)  # create SeqFeature list from rows
@@ -119,6 +125,7 @@ def parse_tbl(tbl_file, fasta_file):
         else:
             cols = line.strip("\n").split("\t")
             rows.append(cols)
+    # vadr result for "pass"
     features = _create_seq_features(rows)  # create SeqFeature list from rows
     current_record.features = features
     yield current_record

@@ -3,13 +3,14 @@ version: '3.7'
 services:
 
     app:
-        image: nigyta/dfast_vrl:latest
+        # image: nigyta/dfast_vrl:latest
+        image: nigyta/dfast_vrl:1.6-0.4
         build:
             context: .
         command: tail -f /dev/null
         volumes:
             - .:/dfast_vrl
-            - ../test_data:/data
+            - ./dev:/data
             - ../vadr_models:/vadr_models
         environment:
             - TZ=Asia/Tokyo            

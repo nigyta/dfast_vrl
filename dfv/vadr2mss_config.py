@@ -1,6 +1,7 @@
 
 class Mpox():
-    command = "v-annotate.pl --split --cpu {cpu} --glsearch --minimap2 -s -r --nomisc --mkey mpxv --r_lowsimok --r_lowsimxd 100 --r_lowsimxl 2000 --alt_pass discontn,dupregin --s_overhang 150 -f --mdir $VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION {fasta} {outdir}"
+    # command = "v-annotate.pl --split --cpu {cpu} --glsearch --minimap2 -s -r --nomisc --mkey mpxv --r_lowsimok --r_lowsimxd 100 --r_lowsimxl 2000 --alt_pass discontn,dupregin --s_overhang 150 -f --mdir $VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --glsearch --minimap2 -s -r --mkey mpxv --r_lowsimok --r_lowsimxd 100 --r_lowsimxl 2000 --alt_pass discontn,dupregin --s_overhang 150 -f --mdir $VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION {fasta} {outdir}"
     mol_type = "DNA"
     minfo_file = "$VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION/mpxv.minfo"
     organism = "Monkeypox virus"
