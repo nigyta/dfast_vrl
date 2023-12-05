@@ -136,9 +136,13 @@ update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=nu
 mss = MSS2(out_gbk_file, metadata_file)
 mss.convert(work_dir, mss_file_prefix)
 
+warnings = [warning.to_tuple() for warning in vadr_warnings]
+if vadr_warnings:
+    for warning in vadr_warnings:
+        logger.warning("VADR Warning: %s", warning)
 
 out_report_file = os.path.join(work_dir, "dfv_report.json")
 logger.info(f"Writing report json to {out_report_file}")
 with open(out_report_file, "w") as f:
-    json.dump({"annotation": annotation_stats}, f, indent=4)
+    json.dump({"annotation": annotation_stats, "warnings": warnings}, f, indent=4)
 

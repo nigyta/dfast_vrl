@@ -3,9 +3,13 @@ from dataclasses import dataclass, field
 # @dataclass
 class DFV_WARNING:
     
-    def __init__(self, level, name, message):
+    def __init__(self, level, name, message, targets=None):
         self.level, self.name, self.message = level, name, message   
-        self.targets = [] 
+        if targets is None:
+            self.targets = [] 
+        else:
+            self.targets = targets
+
     # level : str = "WARNING"  # INFO, WARNING, CRITICAL
     # name : str = "name"
     # message : str = "message"
@@ -101,6 +105,12 @@ INCOMPLETE_GENOME_WARNING = DFV_WARNING(level="WARNING",
 MISC_FEATURES = DFV_WARNING(level="WARNING", 
                                         name="MISC_FEATURES", 
                                         message="Biological features are annotatated as misc_feature.")
+
+VADR_ANNOTATION_FAILED_WITH_CRITICAL_WARNINGS = DFV_WARNING(level="CRITICAL", 
+                                     name="VADR_ANNOTATION_FAILED_WITH_CRITICAL_WARNINGS", 
+                                     message="VADR failed with critical warnings. Please check VADR result files carefully.",
+                                     targets=["-"])
+
 
 def create_VADR_warning(fail, alert_desc, alert_detail):
     if fail == "yes":
