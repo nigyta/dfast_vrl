@@ -124,12 +124,12 @@ projectType	value	(vrl)	bioproject	mss_required	FALSE
 projectType	value	(vrl)	biosample	mss_required	FALSE		
 projectType	value	(vrl)	isolate	ADDFIELD			
 projectType	value	(vrl)	collection_date	ADDFIELD			
-projectType	value	(vrl)	source_country	ADDFIELD			
+projectType	value	(vrl)	geo_loc_name	ADDFIELD			
 projectType	value	(vrl)	host	ADDFIELD			
 projectType	value	(vrl)	isolation_source	ADDFIELD			
 projectType	value	(vrl)	isolate	mss_required	TRUE			
 projectType	value	(vrl)	collection_date	mss_required	TRUE			
-projectType	value	(vrl)	source_country	mss_required	TRUE			
+projectType	value	(vrl)	geo_loc_name	mss_required	TRUE			
 projectType	value	(vrl)	host	mss_required	TRUE			
 #projectType	value	(vrl)	isolation_source	mss_required	TRUE			
 # case of genome project							

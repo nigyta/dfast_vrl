@@ -98,7 +98,8 @@ clone	clone	clone	source	EX_SOURCE	string	FALSE	FALSE	.*
 clone_lib	clone_lib	clone_lib	source	EX_SOURCE	string	FALSE	FALSE	.*							
 collected_by	collected_by	collected_by	source	EX_SOURCE	string	FALSE	FALSE	.*							
 collection_date	collection_date	collection_date	source	EX_SOURCE	string	FALSE	FALSE	.*							
-source_country	country	country	source	EX_SOURCE	string	FALSE	FALSE	.*							
+#source_country	country	country	source	EX_SOURCE	string	FALSE	FALSE	.*							
+geo_loc_name	geo_loc_name	geo_loc_name	source	EX_SOURCE	string	FALSE	FALSE	.*							
 cultivar	cultivar	cultivar	source	COMMON/ENTRY	string	FALSE	FALSE	.*							
 dev_stage	dev_stage	dev_stage	source	EX_SOURCE	string	FALSE	FALSE	.*							
 ecotype	ecotype	ecotype	source	EX_SOURCE	string	FALSE	FALSE	.*							

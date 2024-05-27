@@ -650,6 +650,9 @@ class Metadata():
                 value = value.replace(",", ";")   # for compatibility of DFAST old version
             # field = metadata.fields.get(key)
             if value:
+                if key == "source_country":
+                    key = "geo_loc_name"  # compatibility for deprecation of "country" in the source feature
+
                 D[key] = value
 
         return Metadata.initializeFromFormData(D)
