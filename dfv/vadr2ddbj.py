@@ -397,10 +397,11 @@ class VADR2DDBJ:
                     INCOMPLETE_CDS_WARNING.add("no stop codon:" + product)
                     note.append("no stop codon")
                     incomplete = True
-                # if "XXXX" in translation:
-                    # INCOMPLETE_CDS_WARNING.add("too many ambiguous AA:" + product)
-                    # incomplete = True
-                    # note.append("too many ambiguous AA")
+                if "X" in translation:
+                    INCOMPLETE_CDS_WARNING.add("Contains ambiguous AA:" + product)
+                    incomplete = True
+                    # feature.type = "misc_feature"
+                    note.append("Contains ambiguous AA")
                 n_ratio = get_n_ratio(seq_record.seq, feature)
                 if n_ratio >= max_n_ratio:
                     feature.type = "misc_feature"
@@ -418,15 +419,15 @@ class VADR2DDBJ:
                     incomplete = True
                 if incomplete:
                     # The part below is currently disabled, but might be revived in the future
-                    # feature.type = "misc_feature"
-                    # del feature.qualifiers["codon_start"]
-                    # del feature.qualifiers["transl_table"]
-                    # del feature.qualifiers["translation"]
-                    # del feature.qualifiers["product"]
-                    # if "ribosomal_slippage" in feature.qualifiers:
-                    #     del feature.qualifiers["ribosomal_slippage"]
-                    # if product:
-                    #     feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
+                    feature.type = "misc_feature"
+                    del feature.qualifiers["codon_start"]
+                    del feature.qualifiers["transl_table"]
+                    del feature.qualifiers["translation"]
+                    del feature.qualifiers["product"]
+                    if "ribosomal_slippage" in feature.qualifiers:
+                        del feature.qualifiers["ribosomal_slippage"]
+                    if product:
+                        feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
                     if note:
                         # note = f"incomplete CDS: " + "; ".join(note)
                         # note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"

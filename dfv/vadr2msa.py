@@ -32,6 +32,9 @@ from datetime import datetime
 logger = getLogger(__name__)
 
 
+# This file seems to be not used anymore. Will be removed in the future. 2024.07.01
+
+
 def gbk2faa(file_name):
     R = SeqIO.parse(file_name, "gbk")
     aa = []

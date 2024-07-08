@@ -4,7 +4,7 @@ services:
 
     app:
         # image: nigyta/dfast_vrl:latest
-        image: nigyta/dfast_vrl:1.6-0.4
+        image: nigyta/dfast_vrl:1.6.4-0.6
         build:
             context: .
         command: tail -f /dev/null

@@ -1,10 +1,10 @@
 # base image
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 # Modified from docker://staphb/vadr
 
 # metadata - optional, but highly recommended
-LABEL base.image="ubuntu:22.04"
+LABEL base.image="ubuntu:24.04"
 LABEL dockerfile.version="1"
 LABEL software="VADR"
 LABEL software.version=${VADR_VERSION}
@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y wget perl curl unzip build-essential gi
  apt-get install -y libinline-c-perl liblwp-protocol-https-perl zlib1g-dev
 
 
-ENV VADR_VERSION="1.6"\
+ENV VADR_VERSION="1.6.4"\
   LC_ALL=C \
   VADRINSTALLDIR=/opt/vadr
 
@@ -26,7 +26,7 @@ ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
  VADRMODELDIR=/vadr_models \
  VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries \
  VADREASELDIR=$VADRINSTALLDIR/infernal/binaries \
- VADRHMMERDIR=$VADRINSTALLDIR/hmmer/binaries \
+ VADRHMMERDIR=$VADRINSTALLDIR/infernal/binaries \
  VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel \
  VADRSEQUIPDIR=$VADRINSTALLDIR/sequip \
  VADRFASTADIR=$VADRINSTALLDIR/fasta/bin \
@@ -95,7 +95,7 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
 
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=4
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=5
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
