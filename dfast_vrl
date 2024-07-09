@@ -16,7 +16,7 @@ from dfv.detect_variants import detect_variants
 from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file
 
 
-dfv_version = "1.6.4-0.6"
+dfv_version = "1.6.4-0.7"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -60,6 +60,12 @@ def parse_args():
         action='store_true',
         help="Disable scaffolding process based on the mapping result to the reference. Ignored when '--modify_query_fasta' is not specified."
     )
+    parser.add_argument(
+        '--as_misc', '-am',
+        action='store_true',
+        help="Convert partial/ambiguous CDS feature to misc_feature."
+    )
+
     parser.add_argument(
         '--force',
         action='store_true',
@@ -143,6 +149,7 @@ vadr_result_fasta, vadr_result_ftr = run_vadr(preprocessing_result_fasta, vadr_w
 
 
 ##3. Format conversion
+as_misc = args.as_misc
 output_gbk = os.path.join(work_dir, "annotation.gbk")
 output_fasta = os.path.join(work_dir, "genome.fna")
 
@@ -152,7 +159,7 @@ metadata_file = copy_or_create_metadata_file(work_dir, args)
 
 
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
-output_gbk, vadr_report, vadr_warnings = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate)
+output_gbk, vadr_report, vadr_warnings = convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate, as_misc=as_misc)
 
 
 seq_status = vadr_report["vadr"].get("seq_status", "")

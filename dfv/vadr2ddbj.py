@@ -150,7 +150,7 @@ class VadrFeature:
 class VADR2DDBJ:
     def __init__(self, fasta_file, vadr_dir, metadata=None, 
                  organism="Severe acute respiratory syndrome coronavirus 2", isolate=None, complete=True,
-                 mol_type="genomic RNA", transl_table=1, topology="linear", linkage_evidence="align genus"):
+                 mol_type="genomic RNA", transl_table=1, topology="linear", linkage_evidence="align genus", as_misc=False):
         
         self.seq_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
         self.vadr_dir = vadr_dir
@@ -161,6 +161,7 @@ class VADR2DDBJ:
         self.transl_table = transl_table
         self.complete = complete
         self.linkage_evidence = linkage_evidence
+        self.as_misc = as_misc
         self.models = get_reference_model(name="sars_cov_2")
         self.report = {}
         self.warnings = []
@@ -419,15 +420,16 @@ class VADR2DDBJ:
                     incomplete = True
                 if incomplete:
                     # The part below is currently disabled, but might be revived in the future
-                    feature.type = "misc_feature"
-                    del feature.qualifiers["codon_start"]
-                    del feature.qualifiers["transl_table"]
-                    del feature.qualifiers["translation"]
-                    del feature.qualifiers["product"]
-                    if "ribosomal_slippage" in feature.qualifiers:
-                        del feature.qualifiers["ribosomal_slippage"]
-                    if product:
-                        feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
+                    if self.as_misc:
+                        feature.type = "misc_feature"
+                        del feature.qualifiers["codon_start"]
+                        del feature.qualifiers["transl_table"]
+                        del feature.qualifiers["translation"]
+                        del feature.qualifiers["product"]
+                        if "ribosomal_slippage" in feature.qualifiers:
+                            del feature.qualifiers["ribosomal_slippage"]
+                        if product:
+                            feature.qualifiers.setdefault("note", []).append(f"Incomplete CDS similar to {product}")
                     if note:
                         # note = f"incomplete CDS: " + "; ".join(note)
                         # note = f"incomplete CDS: product={product} [" + "; ".join(note) + "]"
@@ -599,8 +601,8 @@ def get_vadr_models(vadr_dir):
             models.append(cols[1])
     return models
 
-def convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate):
-    v2d = VADR2DDBJ(vadr_result_fasta, vadr_work_dir, isolate=isolate)
+def convert_vadr_to_gbk(vadr_result_fasta, vadr_work_dir, output_gbk, isolate, as_misc=False):
+    v2d = VADR2DDBJ(vadr_result_fasta, vadr_work_dir, isolate=isolate, as_misc=as_misc)
     v2d.to_gbk(output_gbk)
     report_file = os.path.join(vadr_work_dir, "vadr.report.json")
     v2d.make_report(report_file)

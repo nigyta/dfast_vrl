@@ -34,6 +34,12 @@ Example:
 
 The input file must be a single-FASTA file consisting of one complete genome or a multi-FASTA file consisting of multiple sequences from a draft genome assebmly.
 
+
+For low-quality genome, use `--as_misc` to annotatte partial/ambiguous CDS as misc_feature  
+```
+./dfast_vrl -i examples/LC570964-6.draft.contigs.fa -m examples/metadata.txt --as_misc
+```
+
 ## Docker/Singularity container
 ### Docker  
   Available from [nigyta/dfast_vrl](https://hub.docker.com/r/nigyta/dfast_vrl/)  
