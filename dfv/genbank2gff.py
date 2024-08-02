@@ -1,4 +1,3 @@
-from .fix_blank_in_products import fix_blank_in_products
 
 from Bio import SeqIO
 # import urllib
@@ -63,7 +62,6 @@ def gbk2gff(inputGenbankFileName, outputGffName):
     for record in records:
         seqID = record.name
         stringBuffer += ">" + seqID + "\n" + str(record.seq) + "\n"
-    stringBuffer = fix_blank_in_products(stringBuffer)
     with open(outputGffName, "w") as f:
         f.write(stringBuffer)
 

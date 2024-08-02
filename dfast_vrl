@@ -16,7 +16,7 @@ from dfv.detect_variants import detect_variants
 from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file
 
 
-dfv_version = "1.6.4-0.7"
+dfv_version = "1.6.4-0.8"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -65,7 +65,6 @@ def parse_args():
         action='store_true',
         help="Convert partial/ambiguous CDS feature to misc_feature."
     )
-
     parser.add_argument(
         '--force',
         action='store_true',
@@ -182,7 +181,9 @@ with open(out_report_file, "w") as f:
 logger.info(f"DFAST_VRL warnings:\n{json.dumps(warnings, indent=4)}\n")
 
 
-
+from dfv.genbank2gff import gbk2gff
+out_gff_file = os.path.join(work_dir, "annotation.gff")
+gbk2gff(output_gbk, out_gff_file)
 
 logging.info("DFAST_VRL completed")
 
