@@ -206,8 +206,8 @@ def add_gaps(r, min_length=10):
         start, end = m.span()
         length = end - start
         if length >= min_length:
-            qualifiers = {"estimated_length": [length]}
-            r.features.append(SeqFeature(FeatureLocation(start, end, 1), type="gap", qualifiers=qualifiers))
+            qualifiers = {"estimated_length": [length], "gap_type": ["within scaffold"], "linkage_evidence": ["align genus"]}
+            r.features.append(SeqFeature(FeatureLocation(start, end, 1), type="assembly_gap", qualifiers=qualifiers))
 
 
 def sort_features(r):
