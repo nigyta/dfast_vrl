@@ -5,7 +5,7 @@ import sys
 import argparse
 import logging
 import json
-VERSION = "0.8"
+VERSION = "1.6.4-0.9"
 
 
 parser = argparse.ArgumentParser(prog="vadr2mss.py",
