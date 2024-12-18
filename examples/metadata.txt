@@ -9,7 +9,6 @@ submitter	Fujisawa,T.; Mori,H.; Tanizawa,Y.; Nakamura,Y.; Arita,M.
 consrtm	Shizuoka Pref. Consortium for Covid19
 contact	Masanori Arita
 email	mss@ddbj.nig.ac.jp
-phone	81-000-000-000
 institute	National Institute of Genetics
 department	DNA Data Bank of Japan
 url	https://ddbj.nig.ac.jp

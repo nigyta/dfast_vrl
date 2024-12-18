@@ -10,7 +10,6 @@ consrtm	Japan Covid-19 Open Data Consortium
 refconsrtm	Japan Covid-19 Open Data Consortium
 contact	Masanori Arita
 email	arita@nig.ac.jp
-phone	81-55-981-9449
 institute	National Institute of Genetics
 department	
 url	https://www.ddbj.nig.ac.jp/sars-cov-2
