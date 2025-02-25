@@ -16,7 +16,7 @@ from dfv.detect_variants import detect_variants
 from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file
 
 
-dfv_version = "1.6.4-1.0.0"
+dfv_version = "1.6.4-0.10"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
