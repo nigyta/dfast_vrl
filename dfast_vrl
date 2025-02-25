@@ -6,6 +6,12 @@ import shutil
 import logging
 import json
 from argparse import ArgumentParser
+
+# suppress warning
+import warnings
+from Bio import BiopythonDeprecationWarning
+warnings.filterwarnings('ignore', category=BiopythonDeprecationWarning)
+
 from dfv.vadr import run as run_vadr
 from dfv.vadr2ddbj import convert_vadr_to_gbk
 from dfv.genbank2mss import MSS2
