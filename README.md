@@ -95,7 +95,7 @@ cd dfast_vrl
 Download VADR model data
 ```
 mkdir vadr_models
-docker run -it --rm -v $PWD/vadr_models:/vadr_models nigyta/dfast_vrl:1.5-0.3 /dfast_vrl/download_vadr_models.sh
+docker run -it --rm -v $PWD/vadr_models:/vadr_models nigyta/dfast_vrl:latest /dfast_vrl/download_vadr_models.sh
 ```
 
 

@@ -50,14 +50,14 @@ refconsrtm	value	.+	author	mss_required	FALSE		consrtmの値がある場合は�
 consrtm	value	.+	submitter	mss_required	FALSE		consrtmの値がある場合は省略可能
 consrtm	value	.+	contact	mss_required	FALSE		consrtmの値がある場合は省略可能	
 # comment
-projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(tsa)|(htc)|(sts)|(syn)	estcomment	DELETE			
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(tsa)|(htc)|(sts)|(syn)|(vrl)	estcomment	DELETE			
 # structured_comment
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)|(vrl)	tagset_id	mss_required	TRUE		genome/transcript_projectでは必須
 projectType	value	(gss)|(sts)|(env)|(syn)	tagset_id	DELETE			genome/transcript_project以外では不要
-projectType	value	(gnm)|(wgs)|(con)|(htg)	tagset_id	value	Genome-Assembly-Data		ゲノムプロジェクトの場合
-projectType	value	(gnm)|(wgs)|(con)|(htg)	tagset_id	pattern	(Genome\-Assembly\-Data)		ゲノムプロジェクトの場合
-projectType	value	(tsa)|(est)|(htc)|(vrl)	tagset_id	value	Assembly-Data		transcriptome_projectの場合
-projectType	value	(tsa)|(est)|(htc)|(vrl)	tagset_id	pattern	(Assembly\-Data)		transcriptome_projectの場合
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(vrl)	tagset_id	value	Genome-Assembly-Data		ゲノムプロジェクトの場合
+projectType	value	(gnm)|(wgs)|(con)|(htg)|(vrl)	tagset_id	pattern	(Genome\-Assembly\-Data)		ゲノムプロジェクトの場合
+projectType	value	(tsa)|(est)|(htc)	tagset_id	value	Assembly-Data		transcriptome_projectの場合
+projectType	value	(tsa)|(est)|(htc)	tagset_id	pattern	(Assembly\-Data)		transcriptome_projectの場合
 projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Current_Finishing_Status	DELETE			genome_project以外では不要
 projectType	value	(gss)|(sts)|(tsa)|(est)|(htc)|(sts)|(syn)	Finishing_Goal	DELETE			genome_project以外では不要
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)	assemblyMethod	mss_required	TRUE		genome/transcript_projectでは必須
@@ -67,8 +67,8 @@ projectType	value	(gnm)|(wgs)|(con)|(htg)	coverage	mss_required	TRUE		genome_pro
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(gss)|(sts)|(env)|(syn)	coverage2	DELETE	TRUE		genome_projectでは必須
 projectType	value	(tsa)|(est)|(htc)|(gss)|(sts)|(env)|(syn)	coverage	DELETE			genome/transcript_project以外では不要
 projectType	value	(gss)|(sts)|(env)|(syn)	coverage2	DELETE			genome/transcript_project以外では不要
-projectType	value	(tsa)|(est)|(htc)|(vrl)	coverage	qualifier	Coverage		transcript_projectでは名称変更
-projectType	value	(tsa)|(est)|(htc)|(vrl)	coverage	description	Coverage		transcript_projectでは名称変更
+projectType	value	(tsa)|(est)|(htc)	coverage	qualifier	Coverage		transcript_projectでは名称変更
+projectType	value	(tsa)|(est)|(htc)	coverage	description	Coverage		transcript_projectでは名称変更
 projectType	value	(gnm)|(wgs)|(con)|(htg)|(tsa)|(htc)|(est)	sequencingTechnology	mss_required	TRUE		genome/transcript_projectでは必須
 projectType	value	(gss)|(sts)|(env)|(syn)	sequencingTechnology	DELETE			genome/transcript_project以外では不要	
 # for source feature							
@@ -127,7 +127,7 @@ projectType	value	(vrl)	collection_date	ADDFIELD
 projectType	value	(vrl)	geo_loc_name	ADDFIELD			
 projectType	value	(vrl)	host	ADDFIELD			
 projectType	value	(vrl)	isolation_source	ADDFIELD			
-projectType	value	(vrl)	isolate	mss_required	TRUE			
+#projectType	value	(vrl)	isolate	mss_required	TRUE			
 projectType	value	(vrl)	collection_date	mss_required	TRUE			
 projectType	value	(vrl)	geo_loc_name	mss_required	TRUE			
 projectType	value	(vrl)	host	mss_required	TRUE			

@@ -48,12 +48,30 @@ RUN mkdir -p ${VADRINSTALLDIR} && \
 
 
 
-RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
-  sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
-  eval "$(/miniconda3/bin/conda shell.bash hook)" && \
-  conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 pandas && \
-  rm Miniconda3-py38_4.9.2-Linux-x86_64.sh
-ENV PATH=/miniconda3/bin:$PATH
+# RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
+#   sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
+#   eval "$(/miniconda3/bin/conda shell.bash hook)" && \
+#   conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 pandas && \
+#   rm Miniconda3-py38_4.9.2-Linux-x86_64.sh
+# ENV PATH=/miniconda3/bin:$PATH
+
+# 必要なパッケージをインストール（wget, bzip2, ca-certificates）
+# RUN apt-get update && \
+#     apt-get install -y wget bzip2 ca-certificates && \
+#     rm -rf /var/lib/apt/lists/*
+
+# Miniforgeのインストーラをダウンロードしてインストール
+RUN wget --quiet https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-24.11.3-0-Linux-x86_64.sh -O /tmp/miniforge.sh && \
+    /bin/bash /tmp/miniforge.sh -b -p /opt/conda && \
+    rm /tmp/miniforge.sh
+
+# PATH環境変数にcondaのパスを追加
+ENV PATH="/opt/conda/bin:${PATH}"
+RUN mamba install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.84 pandas  && mamba init
+
+
+# コンテナ起動時にbashを実行
+CMD ["/bin/bash"]
 
 
 # install VADR virus models
@@ -93,9 +111,11 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
 #  tar -xf vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
 #  rm -f vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz
 
+# Install DFAST Record tools
+RUN pip install "git+https://github.com/ddbj/dr_tools.git"
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=9
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \

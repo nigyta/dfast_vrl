@@ -2,7 +2,9 @@ import os
 import shutil
 # from logging import getLogger, StreamHandler, FileHandler, Formatter, DEBUG, INFO
 import sys
+from logging import getLogger
 
+logger = getLogger(__name__)
 
 def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA", organism=None):
     """
@@ -79,6 +81,26 @@ def copy_or_create_metadata_file(work_dir, args):
     else:
         shutil.copy(args.metadata_file, metadata_file_copy)
     return metadata_file_copy
+
+def mss2json(work_dir, mss_file_prefix):
+    # Convert MSS file into JSON
+    # ver3.10以上ならモジュールインポートしてjson出力
+    python_version = sys.version_info
+    if python_version.major >= 3 and python_version.minor >= 10:
+        try:
+            from dr_tools import drt_ann2json
+            ann_file = os.path.join(work_dir, f"{mss_file_prefix}.annt.tsv")
+            seq_file = os.path.join(work_dir, f"{mss_file_prefix}.seq.fa")
+            out_json_file = os.path.join(work_dir, "dfast_record.json")
+            drt_ann2json(ann_file, seq_file, out_json_file, division="VRL")
+            logger.info(f"Converted MSS file into JSON. {ann_file} --> {out_json_file}")
+
+        except ImportError:
+            logger.warning("Failed to import dr_tools. Skip converting MSS to JSON.")
+
+
+    else:
+        logger.warning("Python version is less than 3.10. Skip converting MSS to JSON.")
 
 
 # def get_logger(name=None, debug=False, work_dir="."):

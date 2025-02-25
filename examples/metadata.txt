@@ -2,7 +2,7 @@ organism	Severe acute respiratory syndrome coronavirus 2
 isolate	hCov-19/Japan/SZ-NIG-12345/2021
 isolation_source	pharyngeal swab
 host	Homo sapiens
-source_country	Japan: Shizuoka
+geo_loc_name	Japan: Shizuoka
 collection_date	2021-03-20
 projectType	vrl
 submitter	Fujisawa,T.; Mori,H.; Tanizawa,Y.; Nakamura,Y.; Arita,M.

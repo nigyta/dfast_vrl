@@ -16,7 +16,7 @@ from dfv.detect_variants import detect_variants
 from dfv.common import update_metadata_file, get_isolate, copy_or_create_metadata_file
 
 
-dfv_version = "1.6.4-0.9"
+dfv_version = "1.6.4-0.10"
 
 def parse_args():
     parser = ArgumentParser(description=f"DFAST_VRL: Viral genome annotation and data submission tool to DDBJ (ver. {dfv_version})")
@@ -184,6 +184,9 @@ logger.info(f"DFAST_VRL warnings:\n{json.dumps(warnings, indent=4)}\n")
 from dfv.genbank2gff import gbk2gff
 out_gff_file = os.path.join(work_dir, "annotation.gff")
 gbk2gff(output_gbk, out_gff_file)
+
+from dfv.common import mss2json
+mss2json(work_dir, mss_file_prefix)
 
 logging.info("DFAST_VRL completed")
 

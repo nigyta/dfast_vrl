@@ -5,7 +5,7 @@ import sys
 import argparse
 import logging
 import json
-VERSION = "1.6.4-0.9"
+VERSION = "1.6.4-0.10"
 
 
 parser = argparse.ArgumentParser(prog="vadr2mss.py",
@@ -146,3 +146,25 @@ logger.info(f"Writing report json to {out_report_file}")
 with open(out_report_file, "w") as f:
     json.dump({"annotation": annotation_stats, "warnings": warnings}, f, indent=4)
 
+# Convert MSS file into JSON
+# ver3.10以上ならモジュールインポートしてjson出力
+# python_version = sys.version_info
+# if python_version.major >= 3 and python_version.minor >= 10:
+#     try:
+#         from dr_tools import drt_ann2json
+#         ann_file = os.path.join(work_dir, f"{mss_file_prefix}.annt.tsv")
+#         seq_file = os.path.join(work_dir, f"{mss_file_prefix}.seq.fa")
+#         out_json_file = os.path.join(work_dir, "dfast_record.json")
+#         drt_ann2json(ann_file, seq_file, out_json_file, division="VRL")
+#         logger.info(f"Converted MSS file into JSON. {ann_file} --> {out_json_file}")
+
+#     except ImportError:
+#         logger.warning("Failed to import dr_tools. Skip converting MSS to JSON.")
+
+
+# else:
+#     logger.warning("Python version is less than 3.10. Skip converting MSS to JSON.")
+from dfv.common import mss2json
+mss2json(work_dir, mss_file_prefix)
+
+logger.info("vadr2mss finished.")

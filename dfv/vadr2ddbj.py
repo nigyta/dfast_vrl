@@ -138,7 +138,9 @@ class VadrFeature:
                     qualifiers["codon_start"] = [codon_start]
                 else:
                     qualifiers["codon_start"] = [1]
-        feature = SeqFeature(location=location, type=self.ftr_type, strand=location.strand, id=self.idx, qualifiers=qualifiers)
+        # feature = SeqFeature(location=location, type=self.ftr_type, strand=location.strand, id=self.idx, qualifiers=qualifiers)
+        # for compatibility with newer version of biopython
+        feature = SeqFeature(location=location, type=self.ftr_type, id=self.idx, qualifiers=qualifiers)
         return feature
 
     def check_intactness(self):
@@ -149,14 +151,15 @@ class VadrFeature:
 
 class VADR2DDBJ:
     def __init__(self, fasta_file, vadr_dir, metadata=None, 
-                 organism="Severe acute respiratory syndrome coronavirus 2", isolate=None, complete=True,
+                 organism="Severe acute respiratory syndrome coronavirus 2", isolate=None, strain=None, complete=True,
                  mol_type="genomic RNA", transl_table=1, topology="linear", linkage_evidence="align genus", as_misc=False):
         
         self.seq_dict = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
         self.vadr_dir = vadr_dir
         self.metadata = metadata
         self.organism = organism
-        self.isolate = isolate or "(isolate)"
+        self.isolate = isolate
+        self.strain = strain
         self.mol_type = mol_type
         self.transl_table = transl_table
         self.complete = complete
@@ -176,12 +179,17 @@ class VADR2DDBJ:
         self.add_UTRs_to_complete_genome()
         today = datetime.now().strftime('%d-%b-%Y').upper()
         annotations = {
-            "organism": self.organism, "isolate": self.isolate,
+            "organism": self.organism,
             "complete": self.complete, "date": today, "topology": topology,
             "data_file_division": "VRL", "molecule_type": self.mol_type,
             # "sequence_version": 1, "data_file_division": "BCT",
             # "taxonomy":['Eukaryota', 'Viridiplantae', 'Streptophyta', 'Embryophyta', 'Paphiopedilum'],
         }
+        if self.isolate:
+            annotations["isolate"] = [self.isolate]
+        elif self.strain:
+            annotations["strain"] = [self.strain]
+
         for seq_record in self.seq_dict.values():
             seq_record.annotations = annotations
 
@@ -190,10 +198,15 @@ class VADR2DDBJ:
             location = FeatureLocation(0, len(seq_record))
             qualifiers = {
                 "organism": [self.organism],
-                "isolate": [self.isolate],
                 "mol_type": [self.mol_type],
             }
-            source_feature = SeqFeature(id=uuid4(), location=location, type="source", strand=location.strand, qualifiers=qualifiers)
+            if self.isolate:
+                qualifiers["isolate"] = [self.isolate]
+            elif self.strain:
+                qualifiers["strain"] = [self.strain]
+            # source_feature = SeqFeature(id=uuid4(), location=location, type="source", strand=location.strand, qualifiers=qualifiers)
+            # fixed for newer version of biopython
+            source_feature = SeqFeature(id=uuid4(), location=location, type="source", qualifiers=qualifiers)
             seq_record.features.append(source_feature)
 
     def set_gap_features(self, len_cutoff=10):

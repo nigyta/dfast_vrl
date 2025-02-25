@@ -5,7 +5,7 @@ bioproject	PRJDB9999
 biosample	SAMD00000000
 sra	DRR00000
 host	Homo sapiens, female
-source_country	Japan:Shizuoka, east
+geo_loc_name	Japan:Shizuoka, east
 collection_date	2023-03-10
 projectType	vrl
 submitter	Tanizawa,Y.; Mishima,T.

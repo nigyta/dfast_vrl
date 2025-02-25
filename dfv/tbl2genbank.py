@@ -104,6 +104,8 @@ def parse_tbl(tbl_file, fasta_file):
 
     # Read FASTA files into dictionary {seq_id: SeqRecord}
     dict_seq = SeqIO.to_dict(SeqIO.parse(fasta_file, "fasta"))
+    for record in dict_seq.values():
+        record.description = ""  # Remove original description
 
     current_record = None
     rows = []
