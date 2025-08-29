@@ -42,12 +42,15 @@ class Flavi():
     minfo_file = "$VADRMODELDIR/vadr-models-flavi/flavi.minfo"
 
 class COX1():
-    command = "v-annotate.pl --split --cpu {cpu} --xmaxdel 3 --xmaxins 3 --xlongest --mkey cox1 --alt_pass lowcovrg --alt_fail fstlocfi,fstlocf5,fstlocf3 --fstminnti 5 --fstminnt5 5 --fstminnt3 5 --nomisc --noprotid --xsub $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.phy.xsub --mdir $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION {fasta} {outdir}"
-    mol_type = "RNA"
+    # command = "v-annotate.pl --split --cpu {cpu} --xmaxdel 3 --xmaxins 3 --xlongest --mkey cox1 --alt_pass lowcovrg --alt_fail fstlocfi,fstlocf5,fstlocf3 --fstminnti 5 --fstminnt5 5 --fstminnt3 5 --nomisc --noprotid --xsub $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.phy.xsub --mdir $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION {fasta} {outdir}"
+    command = "v-annotate.pl -f --split --cpu {cpu} -r --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey cox1 --mdir $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION {fasta} {outdir}"
+    mol_type = "DNA"
     minfo_file = "$VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.minfo"
-
-
-
+              
+class Flu():
+    command = "v-annotate.pl -f --split --cpu {cpu} --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey flu --mdir $VADRMODELDIR/vadr-models-flu-1.6.3-2 {fasta} {outdir}"
+    mol_type = "cRNA"
+    minfo_file = "$VADRMODELDIR/vadr-models-flu-1.6.3-2/flu.minfo"
 
 
 
@@ -61,7 +64,8 @@ models = {
     "Calici": Calisi,
     "Dengue": Dengue,
     "Flavi": Flavi,
-    "COX1": COX1
+    "COX1": COX1,
+    "Flu": Flu
 }
 
 if __name__ == "__main__":
