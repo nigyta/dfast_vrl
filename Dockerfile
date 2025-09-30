@@ -111,17 +111,18 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
 #  tar -xf vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
 #  rm -f vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz
 
-# Install DFAST Record tools
-RUN pip install "git+https://github.com/ddbj/dr_tools.git"
 
 
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=5
 
 RUN cd / && \
   git clone https://github.com/nigyta/dfast_vrl.git && \
   cd /usr/bin && \
   ln -s /dfast_vrl/dfast_vrl && \
   ln -s /dfast_vrl/vadr2mss.py
+
+# Install DFAST Record tools
+RUN pip install "git+https://github.com/ddbj/dr_tools.git"
 
 
 # set working directory

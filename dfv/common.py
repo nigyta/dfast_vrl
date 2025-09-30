@@ -38,7 +38,8 @@ def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type
         else:
             ret += f"ff_definition\t@@[organism]@@ @@[isolate]@@ {mol_type}, draft genome, @@[entry]@@\n"
     else:
-        raise AssertionError
+        pass
+        # todo: set ff_definition
     with open(metadata_file, "w") as f:
         f.write(ret)
 

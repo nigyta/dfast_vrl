@@ -28,8 +28,9 @@ def get_model_accession(mdl_file):
         elif line.startswith("#") or line.startswith("-"):
             pass  # ok
         else:
-            logger.error("Unexpected .mdl file. %s", line)
-            exit(1)
+            model_accession = "-"
+            # logger.error("Unexpected .mdl file. %s", line)
+            # exit(1)
     assert model_accession
     return model_accession
 
@@ -46,13 +47,18 @@ def get_model_info(out_dir, minfo_file):
     model_accession = get_model_accession(mdl_file)
     # print(model_accession)
     dict_model_info = parse_minfo_file(minfo_file)
-    model_info = dict_model_info[model_accession]
-    # print(model_info)
-    model_length = model_info[0].attrs.get("length")
-    # print(model_length)
-    model_num_cds = len([x for x in model_info if x.type == "CDS"])
-    # print(num_cds)
-    return model_accession, int(model_length), model_num_cds
+    model_info = dict_model_info.get(model_accession)
+    if model_info:
+        # print(model_info)
+        model_length = model_info[0].attrs.get("length")
+        # print(model_length)
+        model_num_cds = len([x for x in model_info if x.type == "CDS"])
+        # print(num_cds)
+    else:
+        # not available for models with multi seqments
+        model_length = None
+        model_num_cds = None
+    return model_accession, model_length, model_num_cds
 
 def get_query_info(out_dir):
     gbk_file = os.path.join(out_dir, "annotation.gbk")
@@ -76,29 +82,44 @@ def get_query_info(out_dir):
     return num_sequence, query_total_length, gap_length, num_cds_intact, num_cds_partial
 
 def check_annotation_stats(out_dir, vadr_dir, model):
+    number_of_sequence, query_total_length, gap_length, num_cds_intact, num_cds_partial = get_query_info(out_dir)
     minfo_file = get_minfo_file(model)
     model_accession, model_length, model_num_cds = get_model_info(vadr_dir, minfo_file)
-    number_of_sequence, query_total_length, gap_length, num_cds_intact, num_cds_partial = get_query_info(out_dir)
-    num_cds_missing = model_num_cds - num_cds_intact - num_cds_partial
-    query_coverage = query_total_length / model_length
+    if model_length:
+        model_length = int(model_length)
+        query_coverage = query_total_length / model_length
+        query_coverage = f"{query_coverage:.2%}"
+        if query_coverage > 0.98 and gap_length == 0:
+            status = "complete"
+        elif query_coverage > 0.9:
+            status = "nearly complete"
+        else:
+            status = "draft"
 
+    else:
+        query_coverage = "n.a."
+        status = "n.a."
+    if model_num_cds:
+        num_cds_missing = model_num_cds - num_cds_intact - num_cds_partial
+    else:
+        num_cds_missing = "n.a."
     # status:
     # complete: coverage > 98%, qap_length = 0
     # nearly complete: coverage > 90%
     # draft: other
-    if query_coverage > 0.98 and gap_length == 0:
-        status = "complete"
-    elif query_coverage > 0.9:
-        status = "nearly complete"
-    else:
-        status = "draft"
+    # if query_coverage > 0.98 and gap_length == 0:
+    #     status = "complete"
+    # elif query_coverage > 0.9:
+    #     status = "nearly complete"
+    # else:
+    #     status = "draft"
 
     ret = {
         "status": status,
         "number_of_sequence": number_of_sequence,
         "total_length": query_total_length,
         "model_length": model_length,
-        "query_coverage": f"{query_coverage:.2%}",
+        "query_coverage": query_coverage,
         "qap_length": gap_length,
         # "cds_completeness": f"{num_cds_intact} / {num_cds_partial} / {num_cds_missing} / {model_num_cds} [intact/partial/missing/total]"
         "cds_completeness": f"{num_cds_intact} / {num_cds_partial} / {model_num_cds} [intact/partial/expected]"

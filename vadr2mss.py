@@ -5,7 +5,7 @@ import sys
 import argparse
 import logging
 import json
-VERSION = "1.6.4-0.10"
+VERSION = "1.6.4-0.11"
 
 
 parser = argparse.ArgumentParser(prog="vadr2mss.py",
@@ -29,10 +29,10 @@ parser.add_argument(
         "-M",
         "--model",
         type=str,
-        help="Reference model for VADR",
+        help="Reference model for VADR [mpox, sarscov2, corona, RSV, Noro, Calici, Dengue, Flavi, COX1, Flu]",
         metavar="MODEL",
         required=True,
-        choices=["mpox", "sarscov2", "corona", "RSV", "Noro", "Calici", "Dengue", "Flavi", "COX1"]
+        choices=["mpox", "sarscov2", "corona", "RSV", "Noro", "Calici", "Dengue", "Flavi", "COX1", "Flu"]
     )
 parser.add_argument(
         '--force',
@@ -120,6 +120,7 @@ tbl2genbank(vadr_out_tbl_pass, vadr_out_fasta_pass, out_gbk_file, model)
 metadata_file = copy_or_create_metadata_file(work_dir, args)
 
 
+# metadata fileからisolate名を取得、出力されるMSSファイルのprefixはisolate名に基づいて決定
 isolate, mss_file_prefix = get_isolate(metadata_file, args)
 
 annotation_stats = check_annotation_stats(work_dir, vadr_dir, model)
@@ -135,6 +136,11 @@ update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=nu
 # Convert .gbk file and metadata file into MSS format.
 mss = MSS2(out_gbk_file, metadata_file)
 mss.convert(work_dir, mss_file_prefix)
+
+# fix MSS file for influenza virus (adding segment information, etc.)
+if args.model == "Flu":
+    from dfv.fix_mss_for_ful import fix_flu_mss
+    fix_flu_mss(work_dir, mss_file_prefix)
 
 warnings = [warning.to_tuple() for warning in vadr_warnings]
 if vadr_warnings:
