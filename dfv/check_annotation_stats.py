@@ -88,14 +88,13 @@ def check_annotation_stats(out_dir, vadr_dir, model):
     if model_length:
         model_length = int(model_length)
         query_coverage = query_total_length / model_length
-        query_coverage = f"{query_coverage:.2%}"
         if query_coverage > 0.98 and gap_length == 0:
             status = "complete"
         elif query_coverage > 0.9:
             status = "nearly complete"
         else:
             status = "draft"
-
+        query_coverage = f"{query_coverage:.2%}"  # format as percentage for output
     else:
         query_coverage = "n.a."
         status = "n.a."

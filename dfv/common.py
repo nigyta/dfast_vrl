@@ -4,6 +4,8 @@ import shutil
 import sys
 from logging import getLogger
 
+from pydantic import ValidationError
+
 logger = getLogger(__name__)
 
 def update_metadata_file(metadata_file, seq_status, number_of_sequence, mol_type="RNA", organism=None):
@@ -98,7 +100,8 @@ def mss2json(work_dir, mss_file_prefix):
 
         except ImportError:
             logger.warning("Failed to import dr_tools. Skip converting MSS to JSON.")
-
+        except ValidationError as e:
+            logger.warning("Failed to convert MSS to JSON due to ValidationError: %s", e)
 
     else:
         logger.warning("Python version is less than 3.10. Skip converting MSS to JSON.")
