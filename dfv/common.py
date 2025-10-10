@@ -4,7 +4,6 @@ import shutil
 import sys
 from logging import getLogger
 
-from pydantic import ValidationError
 
 logger = getLogger(__name__)
 
@@ -91,6 +90,8 @@ def mss2json(work_dir, mss_file_prefix):
     python_version = sys.version_info
     if python_version.major >= 3 and python_version.minor >= 10:
         try:
+            from pydantic import ValidationError
+
             from dr_tools import drt_ann2json
             ann_file = os.path.join(work_dir, f"{mss_file_prefix}.annt.tsv")
             seq_file = os.path.join(work_dir, f"{mss_file_prefix}.seq.fa")
@@ -99,9 +100,9 @@ def mss2json(work_dir, mss_file_prefix):
             logger.info(f"Converted MSS file into JSON. {ann_file} --> {out_json_file}")
 
         except ImportError:
-            logger.warning("Failed to import dr_tools. Skip converting MSS to JSON.")
-        except ValidationError as e:
-            logger.warning("Failed to convert MSS to JSON due to ValidationError: %s", e)
+            logger.warning("Failed to import dr_tools or pydantic. Skip converting MSS to JSON.")
+        except Exception as e:
+            logger.warning("Failed to convert MSS to JSON possibly due to ValidationError: %s", e)
 
     else:
         logger.warning("Python version is less than 3.10. Skip converting MSS to JSON.")
