@@ -76,10 +76,11 @@ def get_isolate(metadata_file, args):
 
 def copy_or_create_metadata_file(work_dir, args):
     metadata_file_copy = os.path.join(work_dir, "metadata.txt")
+    division = "vrl"  # tentatively default to vrl
     if args.metadata_file is None:
         # Create dummy metadata file
         with open(metadata_file_copy, "w") as f:
-            f.write("projectType\tvrl\n")
+            f.write(f"projectType\t{division}\n")
     else:
         shutil.copy(args.metadata_file, metadata_file_copy)
     return metadata_file_copy

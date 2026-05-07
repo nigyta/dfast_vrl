@@ -47,6 +47,8 @@ class COX1():
     # command = "v-annotate.pl -f --split --cpu {cpu} -r --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey cox1 --mdir $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION {fasta} {outdir}"
     mol_type = "DNA"
     minfo_file = "$VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.minfo"
+    division = "UNK"
+    transl_table =5
 
 class Flu():
     command = "v-annotate.pl -f --split --cpu {cpu} --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey flu --mdir $VADRMODELDIR/vadr-models-flu-1.6.3-2 {fasta} {outdir}"

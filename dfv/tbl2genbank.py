@@ -192,7 +192,6 @@ def add_qualifiers_to_cds_feature(r, model):
                 logger.debug(f"Fixing product name for Mpox annotation. {prodict_original} --> {product_fixed}")
             feature.qualifiers["product"] = [product_fixed]
 
-
 def add_gaps(r, min_length=10):
     """
     add gap feature to SeqRecord.

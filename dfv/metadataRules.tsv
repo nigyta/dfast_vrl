@@ -125,15 +125,18 @@ projectType	value	(vrl)	biosample	mss_required	FALSE
 projectType	value	(vrl)	isolate	ADDFIELD			
 projectType	value	(vrl)	collection_date	ADDFIELD			
 projectType	value	(vrl)	geo_loc_name	ADDFIELD			
-projectType	value	(vrl)	host	ADDFIELD			
+#projectType	value	(vrl)	host	ADDFIELD			
 projectType	value	(vrl)	isolation_source	ADDFIELD			
 #projectType	value	(vrl)	isolate	mss_required	TRUE			
 projectType	value	(vrl)	collection_date	mss_required	TRUE			
 projectType	value	(vrl)	geo_loc_name	mss_required	TRUE			
-projectType	value	(vrl)	host	mss_required	TRUE			
+#projectType	value	(vrl)	host	mss_required	TRUE			
 #projectType	value	(vrl)	isolation_source	mss_required	TRUE			
 # case of genome project							
 #projectType	value	(gnm)|(wgs)|(con)	strain	mss_required	TRUE	DFASTのみ	ゲノムプロジェクトの場合
 #projectType	value	(gnm)|(wgs)|(con)	strain	SETDEFAULT	unkown	DFASTのみ	ゲノムプロジェクトの場合
 #projectType	value	(gnm)|(wgs)|(con)	typeStrain	ADDFIELD			
 #projectType	value	(gnm)|(wgs)|(con)	cultureCollection	ADDFIELD			
+# case of cox1							
+projectType	value	(cox1)	bioproject	mss_required	FALSE		
+projectType	value	(cox1)	biosample	mss_required	FALSE		
