@@ -1,0 +1,95 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+%labels
+    base.image ubuntu:24.04
+    dockerfile.version 1
+    software VADR
+    software.version 1.6.4
+    description This software does viral annotations
+    website https://github.com/ncbi/vadr
+    license https://github.com/ncbi/vadr/blob/master/LICENSE
+    maintainer Yasuhiro Tanizawa
+
+%environment
+    export VADR_VERSION="1.6.4"
+    export LC_ALL=C
+    export VADRINSTALLDIR=/opt/vadr
+    export VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr
+    export VADRMODELDIR=/vadr_models
+    export VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADREASELDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRHMMERDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel
+    export VADRSEQUIPDIR=$VADRINSTALLDIR/sequip
+    export VADRFASTADIR=$VADRINSTALLDIR/fasta/bin
+    export VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
+    export VADRMINIMAP2DIR=$VADRINSTALLDIR/minimap2
+    export PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB
+    export PATH=/opt/conda/bin:$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
+    export VADR_SCOV2_MODELS_VERSION="1.3-2"
+    export VADR_MPXV_MODELS_VERSION="1.4.2-1"
+    export VADR_RSV_MODELS_VERSION="1.5-2"
+    export VADR_COX1_MODELS_VERSION="1.2-1"
+    export VADR_CORONA_MODELS_VERSION="1.3-3"
+    export VADR_FLAVI_MODELS_VERSION="1.2-1"
+    export VADR_CALCI_MODELS_VERSION="1.2-1"
+
+%post
+    # build-time variables (mirror Dockerfile ENVs that are needed during %post)
+    export VADR_VERSION="1.6.4"
+    export LC_ALL=C
+    export VADRINSTALLDIR=/opt/vadr
+    export VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr
+    export VADRMODELDIR=/vadr_models
+    export VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADREASELDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRHMMERDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel
+    export VADRSEQUIPDIR=$VADRINSTALLDIR/sequip
+    export VADRFASTADIR=$VADRINSTALLDIR/fasta/bin
+    export VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
+    export VADRMINIMAP2DIR=$VADRINSTALLDIR/minimap2
+    export PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB
+    export PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
+    export DEBIAN_FRONTEND=noninteractive
+
+    # install dependencies via apt-get
+    apt-get update && apt-get install -y wget perl curl unzip build-essential git autoconf
+    apt-get install -y libinline-c-perl liblwp-protocol-https-perl zlib1g-dev
+
+    # install VADR
+    mkdir -p ${VADRINSTALLDIR}
+    cd ${VADRINSTALLDIR}
+    wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh
+    bash vadr-install.sh linux
+    rm -r $VADRINSTALLDIR/vadr-models-calici $VADRINSTALLDIR/vadr-models-flavi/
+
+    # install Miniforge
+    wget --quiet https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-24.11.3-0-Linux-x86_64.sh -O /tmp/miniforge.sh
+    /bin/bash /tmp/miniforge.sh -b -p /opt/conda
+    rm /tmp/miniforge.sh
+    export PATH="/opt/conda/bin:${PATH}"
+
+    # install bioconda packages
+    mamba install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.84 pandas
+    mamba init
+
+    # install dfast_vrl
+    cd /
+    git clone https://github.com/nigyta/dfast_vrl.git
+    cd /usr/bin
+    ln -s /dfast_vrl/dfast_vrl
+    ln -s /dfast_vrl/vadr2mss.py
+
+    # install DFAST Record tools
+    pip install "git+https://github.com/ddbj/dr_tools.git"
+
+    # verify installation
+    dfast_vrl --version
+
+%runscript
+    exec /bin/bash "$@"
+
+%startscript
+    exec /bin/bash "$@"

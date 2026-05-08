@@ -142,6 +142,11 @@ if args.model == "Flu":
     from dfv.fix_mss_for_ful import fix_flu_mss
     fix_flu_mss(work_dir, mss_file_prefix)
 
+# fix MSS file for RSV (overwrite organism with subtype-specific name)
+if args.model == "RSV":
+    from dfv.fix_mss_for_rsv import fix_rsv_mss
+    fix_rsv_mss(work_dir, mss_file_prefix)
+
 warnings = [warning.to_tuple() for warning in vadr_warnings]
 if vadr_warnings:
     for warning in vadr_warnings:

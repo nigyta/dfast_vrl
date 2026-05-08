@@ -1,0 +1,27 @@
+organism	Respiratory syncytial virus
+mol_type	viral cRNA
+isolate	HRSV/Human/B/Japan/XX-XXX-001/2026
+host	Homo sapiens
+geo_loc_name	USA: Tennessee
+collection_date	2023-11-20
+source_note	test data for RS virus
+projectType	vrl
+submitter	Fujisawa,T.; Mori,H.; Tanizawa,Y.; Nakamura,Y.; Arita,M.
+consrtm	Shizuoka Pref. Consortium for Covid19
+contact	Masanori Arita
+email	mss@ddbj.nig.ac.jp
+institute	National Institute of Genetics
+department	DNA Data Bank of Japan
+url	https://ddbj.nig.ac.jp
+street	1111 Yata
+city	Mishima
+state	Shizuoka
+country	Japan
+ZIP	411-8540
+assemblyMethod	META_VRL v0.0.1
+sequencingTechnology	Illumina MiSeq
+coverage	2000x
+reference	Complete genome sequence of Human respiratory syncytial virus B isolate XXXXXX
+author	Fujisawa,T.; Mori,H.; Tanizawa,Y.; Nakamura,Y.; Arita,M.
+year	2026
+comment	Sequenced and annotated at NIG
