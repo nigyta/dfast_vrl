@@ -6,6 +6,18 @@ From: staphb/vadr:1.7-slim
     description Viral genome annotation -> DDBJ MSS (slim image)
     maintainer Yasuhiro Tanizawa
 
+# Copy the local source tree instead of cloning from GitHub (mirrors Dockerfile.slim's
+# COPY). Singularity %files does NOT honor .dockerignore, so list only the runtime
+# essentials explicitly: the three CLI scripts, the dfv/ package, and refs/ (the
+# NC_045512.2 reference + snpEff config/DBs needed at runtime). Paths are relative to
+# the build directory (repo root).
+%files
+    dfast_vrl /dfast_vrl/dfast_vrl
+    vadr2mss.py /dfast_vrl/vadr2mss.py
+    cox1_to_ddbj.py /dfast_vrl/cox1_to_ddbj.py
+    dfv /dfast_vrl/dfv
+    refs /dfast_vrl/refs
+
 %environment
     # VADR env vars / PATH are inherited from the docker base image.
     export LC_ALL=C
@@ -46,8 +58,8 @@ From: staphb/vadr:1.7-slim
     python3 -m pip install --no-cache-dir --break-system-packages \
         biopython==1.84 "git+https://github.com/ddbj/dr_tools.git"
 
-    # dfast_vrl (explicit clone dir so the symlinks resolve regardless of WORKDIR)
-    git clone https://github.com/nigyta/dfast_vrl.git /dfast_vrl
+    # dfast_vrl source was placed at /dfast_vrl by the %files section above; just
+    # expose the three CLI entry points on PATH.
     ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl
     ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
     ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py

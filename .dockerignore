@@ -1,4 +1,7 @@
-# dfast_vrl source is git-cloned inside the build; context only needs the Dockerfile.
+# This image is built by COPYing the source tree into /dfast_vrl, so .dockerignore
+# is load-bearing: anything excluded here is NOT in the image. Keep the runtime
+# essentials (dfv/, refs/, and the three CLI scripts); exclude VCS/CI/caches,
+# local outputs, test fixtures, and editor cruft.
 .git
 .github
 .devcontainer
@@ -7,16 +10,21 @@
 .DS_Store
 **/.DS_Store
 
-# local outputs / scratch / test fixtures
+# local outputs / scratch / fixtures (mounted at runtime, not needed in the image)
 OUT
 OUT_*
 *_test
 cox1_test
 dev
 docs
-examples
 tests
-refs
+examples
+
+# local-only artifacts that must not leak into the image
+flu
+cox_metadata.tsv
+CLAUDE.md
+*.sif
 
 # editor / OS cruft
 *.pyc

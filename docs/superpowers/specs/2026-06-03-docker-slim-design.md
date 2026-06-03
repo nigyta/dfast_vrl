@@ -193,6 +193,26 @@ base イメージで、ここはこれ以上削れない。slim の追加分は�
 `dfast_record.json` / GBK / GFF を生成して完走（WARNING はドラフトゲノム由来の想定内）。
 スモークテストで mafft v7.505 / OpenJDK 17 / SnpEff 5.0 / biopython 1.84 を確認。
 
+## 設計変更（2026-06-03）: 本体導入を git clone → COPY へ
+
+当初は本体を GitHub から `git clone` し、`ARG INCREMENT_THIS_TO_DISABLE_CACHE...` で
+キャッシュを手動バストしていた（本ドキュメント上方および plan の記述はこの旧方式）。
+以下の理由で **ローカルツリーを `COPY` する方式**へ変更した:
+
+- 手動 bump 不要（COPY 対象ファイルの内容変化で Docker が自動的に層を再構築）。
+- イメージがそのチェックアウトのコードを反映（ローカル修正が push 無しで焼き込まれる。
+  clone 方式では `dfv/` 変更を反映するのに push + 再ビルドが必要だった）。
+- 再現性向上（"main を clone" は可変、COPY はビルド時点で確定）。
+
+**重要な注意**: COPY 方式では `.dockerignore` が"効く"（除外物はイメージに入らない）。
+`refs/`（`NC_045512.2.fasta` と `snpeff/` の設定・`nigvrl` DB）は実行時必須
+（`dfv/preprocessing.py`・`dfv/detect_variants.py`）なので **`.dockerignore` から
+除外しない**こと。Singularity は `%files` が `.dockerignore` を見ないため、必要物
+（CLI 3本・`dfv/`・`refs/`）を `%files` で明示コピーする。
+
+検証: COPY ビルドで `refs/` がイメージに含まれること、未 push のローカル修正
+（COX1 `-f`）が焼き込まれること、SARS-CoV-2 E2E が完走することを確認済み。
+
 ## スコープ外（今回触れない）
 
 - CI（`.github/workflows/update_container.yaml`）の Dockerfile 切替。
