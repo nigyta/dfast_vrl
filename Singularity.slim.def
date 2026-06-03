@@ -22,6 +22,10 @@ From: staphb/vadr:1.7-slim
     export VADR_CALCI_MODELS_VERSION="1.2-1"
 
 %post
+    # abort the build if any step fails (unlike Docker RUN &&-chains, %post lines
+    # are independent statements, so without this a failed download/install would
+    # silently produce a broken image)
+    set -e
     export DEBIAN_FRONTEND=noninteractive
 
     # runtime deps missing from the base (git, python3, mafft, JRE for snpEff);
