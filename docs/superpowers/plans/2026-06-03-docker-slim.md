@@ -158,9 +158,10 @@ ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
 # Cache-busting knob mirrored from the original Dockerfile: bump to force a fresh clone.
 ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 
-RUN git clone https://github.com/nigyta/dfast_vrl.git && \
+RUN git clone https://github.com/nigyta/dfast_vrl.git /dfast_vrl && \
     ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl && \
-    ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
+    ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py && \
+    ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py
 
 WORKDIR /data
 
@@ -332,6 +333,7 @@ From: staphb/vadr:1.7-slim
     git clone https://github.com/nigyta/dfast_vrl.git
     ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl
     ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
+    ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py
 
     # verify
     dfast_vrl --version

@@ -50,6 +50,7 @@ From: staphb/vadr:1.7-slim
     git clone https://github.com/nigyta/dfast_vrl.git /dfast_vrl
     ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl
     ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
+    ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py
 
     # verify
     dfast_vrl --version
