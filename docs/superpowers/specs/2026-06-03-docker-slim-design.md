@@ -163,6 +163,36 @@ Dockerfile.slim と同じ手順（apt 依存、snpEff、pip、本体 clone）で
 4. `docker images` で**旧 `Dockerfile` ビルドとサイズを数値比較**し削減を確認。
 5. 可能なら `vadr2mss.py`（汎用 VADR 経路）も 1 本実行（モデルがあれば）。
 
+## 実測結果（2026-06-03, macOS arm64 / amd64 エミュレーション下）
+
+**イメージサイズ（ローカル非圧縮, `docker inspect .Size`）**
+
+| イメージ | サイズ |
+|---|---|
+| original `ghcr.io/nigyta/dfast_vrl:latest` | 3.61 GB (3.37 GiB) |
+| **slim `dfast_vrl:slim`** | **2.00 GB (1.86 GiB)** |
+| base `staphb/vadr:1.7-slim`（削減下限） | 1.47 GB (1.37 GiB) |
+
+→ **削減 1.62 GB / 44.7%**。残り 2.00GB の大半（1.47GB）は VADR バイナリ群を含む
+base イメージで、ここはこれ以上削れない。slim の追加分は約 0.53GB。
+
+**ビルド時間**: slim は VADR のソースコンパイル（original の支配的コスト）を完全に
+回避。clean build は「base pull + apt + pip」のみで完了し、依存キャッシュ後の
+再ビルドはほぼ即時。original の clean build（VADR コンパイル + conda 解決）は
+エミュレーション下で非現実的なため再ビルド計測はせず、公開イメージをサイズ基準に採用。
+
+**リスク判定（E2E で実証）**
+
+- VADR 1.7 ↔ モデル 1.3-2: **互換**（SARS-CoV-2 パイプライン完走、`.minfo`
+  不整合エラーなし）。→ モデル版の更新は不要。
+- snpEff 5.0 on **Java 17**: **動作**（変異3件を正常検出、`.bin` ロードエラー・
+  Java 例外なし）。→ JRE 11 へのフォールバックは不要。
+
+**E2E**: `dfast_vrl -i examples/LC570964-6.draft.contigs.fa -m examples/metadata.txt`
+を slim イメージ + マウントモデルで実行し、MSS（`.annt.tsv`）/ `.seq.fa` /
+`dfast_record.json` / GBK / GFF を生成して完走（WARNING はドラフトゲノム由来の想定内）。
+スモークテストで mafft v7.505 / OpenJDK 17 / SnpEff 5.0 / biopython 1.84 を確認。
+
 ## スコープ外（今回触れない）
 
 - CI（`.github/workflows/update_container.yaml`）の Dockerfile 切替。
