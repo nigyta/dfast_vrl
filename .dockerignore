@@ -1,0 +1,23 @@
+# dfast_vrl source is git-cloned inside the build; context only needs the Dockerfile.
+.git
+.github
+.devcontainer
+.pytest_cache
+.ipynb_checkpoints
+.DS_Store
+**/.DS_Store
+
+# local outputs / scratch / test fixtures
+OUT
+OUT_*
+*_test
+cox1_test
+dev
+docs
+examples
+tests
+refs
+
+# editor / OS cruft
+*.pyc
+__pycache__
