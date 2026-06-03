@@ -144,6 +144,17 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages \
       biopython==1.84 \
       "git+https://github.com/ddbj/dr_tools.git"
 
+# VADR model versions consumed at RUNTIME (shell-expanded into the v-annotate.pl
+# --mdir path by dfv/vadr.py & dfv/vadr2mss_config.py; read via os.getenv in
+# dfv/reference_models.py). Models are mounted at $VADRMODELDIR, not bundled.
+ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
+    VADR_MPXV_MODELS_VERSION="1.4.2-1" \
+    VADR_RSV_MODELS_VERSION="1.5-2" \
+    VADR_COX1_MODELS_VERSION="1.2-1" \
+    VADR_CORONA_MODELS_VERSION="1.3-3" \
+    VADR_FLAVI_MODELS_VERSION="1.2-1" \
+    VADR_CALCI_MODELS_VERSION="1.2-1"
+
 # Cache-busting knob mirrored from the original Dockerfile: bump to force a fresh clone.
 ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
 
@@ -287,6 +298,14 @@ From: staphb/vadr:1.7-slim
     # VADR env vars / PATH are inherited from the docker base image.
     export LC_ALL=C
     export VADRMODELDIR=/vadr_models
+    # model versions are shell-expanded into v-annotate.pl --mdir at runtime
+    export VADR_SCOV2_MODELS_VERSION="1.3-2"
+    export VADR_MPXV_MODELS_VERSION="1.4.2-1"
+    export VADR_RSV_MODELS_VERSION="1.5-2"
+    export VADR_COX1_MODELS_VERSION="1.2-1"
+    export VADR_CORONA_MODELS_VERSION="1.3-3"
+    export VADR_FLAVI_MODELS_VERSION="1.2-1"
+    export VADR_CALCI_MODELS_VERSION="1.2-1"
 
 %post
     export DEBIAN_FRONTEND=noninteractive

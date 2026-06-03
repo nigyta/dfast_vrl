@@ -83,9 +83,14 @@ FROM --platform=linux/amd64 staphb/vadr:1.7-slim
 
 - base が設定する VADR 系 ENV（`VADRINSTALLDIR`, `VADRSCRIPTSDIR`,
   `VADRMINISCRIPTSDIR`, `PERL5LIB`, VADR の `PATH` 等）は**継承する**。
-- 本プロジェクト固有の上書きのみ宣言:
+- 本プロジェクト固有の上書き/追加のみ宣言:
   - `VADRMODELDIR=/vadr_models`（ホストマウント先）
   - `LC_ALL=C`
+  - **`VADR_*_MODELS_VERSION`（SCOV2/MPXV/RSV/COX1/CORONA/FLAVI/CALCI）**:
+    これらは**実行時**に `dfv/vadr.py`・`dfv/vadr2mss_config.py` が
+    `v-annotate.pl --mdir $VADRMODELDIR/vadr-models-<virus>-$VADR_<virus>_MODELS_VERSION`
+    としてシェル展開し、`dfv/reference_models.py` が `os.getenv` で読む。
+    元 Dockerfile（78–84 行）と同値を必ず設定する（未設定だとモデルパスが壊れる）。
   - snpEff ラッパー設置先 `/usr/local/bin` は既定 PATH 内のため PATH 追記不要。
 
 ### 依存の置換
