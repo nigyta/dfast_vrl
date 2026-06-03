@@ -1,0 +1,58 @@
+# Slim build of dfast_vrl: prebuilt VADR base, no source compile, no conda.
+# Companion to the original ./Dockerfile (kept for reference). See
+# docs/superpowers/specs/2026-06-03-docker-slim-design.md
+FROM --platform=linux/amd64 staphb/vadr:1.7-slim
+
+LABEL software="DFAST_VRL"
+LABEL description="Viral genome annotation -> DDBJ MSS (slim image)"
+LABEL website="https://github.com/nigyta/dfast_vrl"
+LABEL maintainer="Yasuhiro Tanizawa"
+
+# dfast_vrl mounts VADR models from the host; override the base's VADRMODELDIR.
+# All other VADR env vars / PATH are inherited from staphb/vadr:1.7-slim.
+ENV VADRMODELDIR=/vadr_models \
+    LC_ALL=C
+
+# Runtime deps missing from the base image:
+#   git                     -> clone dfast_vrl
+#   python3/pip/is-python3  -> scripts use `#!/usr/bin/env python` + Biopython
+#   mafft                   -> MSA in dfv/detect_variants.py
+#   openjdk-17-jre-headless -> runs snpEff (Java)
+# (wget / unzip / curl already present in the base.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git \
+      python3 \
+      python3-pip \
+      python-is-python3 \
+      mafft \
+      openjdk-17-jre-headless && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# snpEff 5.0 (pinned: committed snpEffectPredictor.bin DBs were built with 5.0).
+# The core zip extracts to /opt/snpEff/snpEff.jar. Provide a `snpEff` command on
+# PATH so dfv/detect_variants.py ("snpEff -c ... ") works unchanged.
+RUN wget -q https://snpeff-public.s3.amazonaws.com/versions/snpEff_v5_0_core.zip -O /tmp/snpeff.zip && \
+    unzip -q /tmp/snpeff.zip -d /opt && \
+    rm /tmp/snpeff.zip && \
+    test -f /opt/snpEff/snpEff.jar && \
+    printf '#!/bin/sh\nexec java -jar /opt/snpEff/snpEff.jar "$@"\n' > /usr/local/bin/snpEff && \
+    chmod +x /usr/local/bin/snpEff
+
+# Python deps (no conda). pandas intentionally omitted (unused in code; pulled in
+# transitively only if dr_tools requires it).
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+      biopython==1.84 \
+      "git+https://github.com/ddbj/dr_tools.git"
+
+# Cache-busting knob mirrored from the original Dockerfile: bump to force a fresh clone.
+ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=1
+
+RUN git clone https://github.com/nigyta/dfast_vrl.git /dfast_vrl && \
+    ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl && \
+    ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
+
+WORKDIR /data
+
+RUN dfast_vrl --version
+
+CMD ["/bin/bash"]
