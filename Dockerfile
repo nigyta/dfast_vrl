@@ -1,133 +1,72 @@
-# base image
-FROM ubuntu:24.04
+# dfast_vrl image: prebuilt VADR base (no source compile), no conda, source COPYed in.
+# See docs/superpowers/specs/2026-06-03-docker-slim-design.md
+FROM --platform=linux/amd64 staphb/vadr:1.7-slim
 
-# Modified from docker://staphb/vadr
-
-# metadata - optional, but highly recommended
-LABEL base.image="ubuntu:24.04"
-LABEL dockerfile.version="1"
-LABEL software="VADR"
-LABEL software.version=${VADR_VERSION}
-LABEL description="This software does viral annotations"
-LABEL website="https://github.com/ncbi/vadr"
-LABEL license="https://github.com/ncbi/vadr/blob/master/LICENSE"
+LABEL software="DFAST_VRL"
+LABEL description="Viral genome annotation -> DDBJ MSS (slim image)"
+LABEL website="https://github.com/nigyta/dfast_vrl"
 LABEL maintainer="Yasuhiro Tanizawa"
 
-# install dependencies via apt-get. Clean up apt garbage 
-RUN apt-get update && apt-get install -y wget perl curl unzip build-essential git autoconf && \
- apt-get install -y libinline-c-perl liblwp-protocol-https-perl zlib1g-dev
+# dfast_vrl mounts VADR models from the host; override the base's VADRMODELDIR.
+# All other VADR env vars / PATH are inherited from staphb/vadr:1.7-slim.
+ENV VADRMODELDIR=/vadr_models \
+    LC_ALL=C
 
+# Runtime deps missing from the base image:
+#   git                     -> pip-install dr_tools from GitHub
+#   python3/pip/is-python3  -> scripts use `#!/usr/bin/env python` + Biopython
+#   mafft                   -> MSA in dfv/detect_variants.py
+#   openjdk-17-jre-headless -> runs snpEff (Java)
+# (wget / unzip / curl already present in the base.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git \
+      python3 \
+      python3-pip \
+      python-is-python3 \
+      mafft \
+      openjdk-17-jre-headless && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV VADR_VERSION="1.6.4"\
-  LC_ALL=C \
-  VADRINSTALLDIR=/opt/vadr
+# snpEff 5.0 (pinned: committed snpEffectPredictor.bin DBs were built with 5.0).
+# The core zip extracts to /opt/snpEff/snpEff.jar. Provide a `snpEff` command on
+# PATH so dfv/detect_variants.py ("snpEff -c ... ") works unchanged.
+RUN wget -q https://snpeff-public.s3.amazonaws.com/versions/snpEff_v5_0_core.zip -O /tmp/snpeff.zip && \
+    unzip -q /tmp/snpeff.zip -d /opt && \
+    rm /tmp/snpeff.zip && \
+    test -f /opt/snpEff/snpEff.jar && \
+    printf '#!/bin/sh\nexec java -jar /opt/snpEff/snpEff.jar "$@"\n' > /usr/local/bin/snpEff && \
+    chmod +x /usr/local/bin/snpEff
 
-ENV VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr \
- VADRMODELDIR=/vadr_models \
- VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries \
- VADREASELDIR=$VADRINSTALLDIR/infernal/binaries \
- VADRHMMERDIR=$VADRINSTALLDIR/infernal/binaries \
- VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel \
- VADRSEQUIPDIR=$VADRINSTALLDIR/sequip \
- VADRFASTADIR=$VADRINSTALLDIR/fasta/bin \
- VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin \
- VADRMINIMAP2DIR=$VADRINSTALLDIR/minimap2
+# Python deps (no conda). pandas intentionally omitted (unused in code; pulled in
+# transitively only if dr_tools requires it).
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+      biopython==1.84 \
+      "git+https://github.com/ddbj/dr_tools.git"
 
-
-ENV PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch:$PERL5LIB \
- PATH=$VADRSCRIPTSDIR:$VADRBLASTDIR:$PATH
-
-
-# install VADR
-RUN mkdir -p ${VADRINSTALLDIR} && \
- cd ${VADRINSTALLDIR} &&\
- wget https://raw.githubusercontent.com/ncbi/vadr/release-${VADR_VERSION}/vadr-install.sh && \
- bash vadr-install.sh linux && \
- rm -r $VADRINSTALLDIR/vadr-models-calici $VADRINSTALLDIR/vadr-models-flavi/
-
-
-
-
-# RUN  wget https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh && \
-#   sh Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p /miniconda3 && \
-#   eval "$(/miniconda3/bin/conda shell.bash hook)" && \
-#   conda install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.78 pandas && \
-#   rm Miniconda3-py38_4.9.2-Linux-x86_64.sh
-# ENV PATH=/miniconda3/bin:$PATH
-
-# 必要なパッケージをインストール（wget, bzip2, ca-certificates）
-# RUN apt-get update && \
-#     apt-get install -y wget bzip2 ca-certificates && \
-#     rm -rf /var/lib/apt/lists/*
-
-# Miniforgeのインストーラをダウンロードしてインストール
-RUN wget --quiet https://github.com/conda-forge/miniforge/releases/download/24.11.3-0/Miniforge3-24.11.3-0-Linux-x86_64.sh -O /tmp/miniforge.sh && \
-    /bin/bash /tmp/miniforge.sh -b -p /opt/conda && \
-    rm /tmp/miniforge.sh
-
-# PATH環境変数にcondaのパスを追加
-ENV PATH="/opt/conda/bin:${PATH}"
-RUN mamba install -y -c bioconda mafft=7.475 snpeff=5.0 biopython=1.84 pandas  && mamba init
-
-
-# コンテナ起動時にbashを実行
-CMD ["/bin/bash"]
-
-
-# install VADR virus models
+# VADR model versions consumed at RUNTIME by the pipeline: dfv/vadr.py and
+# dfv/vadr2mss_config.py shell-expand $VADR_*_MODELS_VERSION into the v-annotate.pl
+# --mdir path, and dfv/reference_models.py reads VADR_SCOV2_MODELS_VERSION via
+# os.getenv. Models themselves are NOT bundled (mounted at $VADRMODELDIR=/vadr_models).
+# Placed before the COPY so the expensive apt/snpEff/pip layers above stay cached.
 ENV VADR_SCOV2_MODELS_VERSION="1.3-2" \
-  VADR_MPXV_MODELS_VERSION="1.4.2-1" \
-  VADR_RSV_MODELS_VERSION="1.5-2" \
-  VADR_COX1_MODELS_VERSION="1.2-1" \
-  VADR_CORONA_MODELS_VERSION="1.3-3" \
-  VADR_FLAVI_MODELS_VERSION="1.2-1" \
-  VADR_CALCI_MODELS_VERSION="1.2-1"
+    VADR_MPXV_MODELS_VERSION="1.4.2-1" \
+    VADR_RSV_MODELS_VERSION="1.5-2" \
+    VADR_COX1_MODELS_VERSION="1.2-2" \
+    VADR_CORONA_MODELS_VERSION="1.3-3" \
+    VADR_FLAVI_MODELS_VERSION="1.2-1" \
+    VADR_CALCI_MODELS_VERSION="1.2-1"
 
-# For DFAST_VRL, the reference data will be downloaded under VADRINSTALLDIR.
-# RUN cd ${VADRINSTALLDIR} && \
-#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/sarscov2/${VADR_SCOV2_MODELS_VERSION}/vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
-#  tar -xf vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz && \
-#  rm -f vadr-models-sarscov2-${VADR_SCOV2_MODELS_VERSION}.tar.gz
-# As of 2023.10.28, reference data have been removed from the container
+# Copy the local source tree instead of cloning from GitHub: Docker invalidates
+# this layer automatically whenever a copied file changes (no manual cache-bust
+# knob), and the image reflects exactly this checkout. .dockerignore decides what
+# lands here, so it must keep dfv/, refs/, and the three CLI scripts.
+COPY . /dfast_vrl
+RUN ln -s /dfast_vrl/dfast_vrl /usr/bin/dfast_vrl && \
+    ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py && \
+    ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py
 
-# For VADR2MSS. Currently, the reference data are not included in the container.
-# RUN cd ${VADRINSTALLDIR} && \
-#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/mpxv/${VADR_MPXV_MODELS_VERSION}/vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
-#  tar -xf vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz && \
-#  rm -f vadr-models-mpxv-${VADR_MPXV_MODELS_VERSION}.tar.gz
-
-# RUN cd ${VADRINSTALLDIR} && \
-#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/rsv/${VADR_RSV_MODELS_VERSION}/vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz && \
-#  tar -xf vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz && \
-#  rm -f vadr-models-rsv-${VADR_RSV_MODELS_VERSION}.tar.gz
-
-# RUN cd ${VADRINSTALLDIR} && \
-#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/cox1/${VADR_COX1_MODELS_VERSION}/vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz && \
-#  tar -xf vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz && \
-#  rm -f vadr-models-cox1-${VADR_COX1_MODELS_VERSION}.tar.gz
-
-# RUN cd ${VADRINSTALLDIR} && \
-#  wget https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models/coronaviridae/${VADR_CORONA_MODELS_VERSION}/vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
-#  tar -xf vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz && \
-#  rm -f vadr-models-corona-${VADR_CORONA_MODELS_VERSION}.tar.gz
-
-
-
-ARG INCREMENT_THIS_TO_DISABLE_CACHE_BELOW_THIS_LINE=6
-
-RUN cd / && \
-  git clone https://github.com/nigyta/dfast_vrl.git && \
-  cd /usr/bin && \
-  ln -s /dfast_vrl/dfast_vrl && \
-  ln -s /dfast_vrl/vadr2mss.py
-
-# Install DFAST Record tools
-RUN pip install "git+https://github.com/ddbj/dr_tools.git"
-
-
-# set working directory
 WORKDIR /data
 
-RUN dfast_vrl --version 
+RUN dfast_vrl --version
 
-
+CMD ["/bin/bash"]

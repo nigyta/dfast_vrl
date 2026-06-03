@@ -213,7 +213,21 @@ base イメージで、ここはこれ以上削れない。slim の追加分は�
 検証: COPY ビルドで `refs/` がイメージに含まれること、未 push のローカル修正
 （COX1 `-f`）が焼き込まれること、SARS-CoV-2 E2E が完走することを確認済み。
 
-## スコープ外（今回触れない）
+## 設計変更（2026-06-03, 続）: slim を canonical な Dockerfile / Singularity.def へ昇格
+
+当初は「旧 `Dockerfile` / `Singularity.def` を温存し `*.slim` を別途追加」「CI 切替は
+スコープ外」としていたが、方針転換し **slim 構成を canonical な `Dockerfile` /
+`Singularity.def` に昇格**、旧 conda ベース定義は削除（`Dockerfile.slim` /
+`Singularity.slim.def` は廃止）。旧 `Dockerfile` の未コミット WIP（`ubuntu:26.04` /
+`INCREMENT`）も破棄（COX1 1.2-2 は slim 側に反映済み）。
+
+これに伴い、CI（`.github/workflows/update_container.yaml`, `context: .` の
+デフォルト Dockerfile）と `docker-compose.yml`（`build: context: .`）は自動的に
+slim をビルドする。ビルドは `docker build -t … .`（`-f` 不要）。
+
+→ 以下「スコープ外」に記した「既存ファイル温存」「CI 切替は別途」は本節で**置き換え**。
+
+## スコープ外（今回触れない、※上記昇格で一部は実施済み）
 
 - CI（`.github/workflows/update_container.yaml`）の Dockerfile 切替。
   slim を用意したのち別途相談する。
