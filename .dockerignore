@@ -25,6 +25,7 @@ flu
 cox_metadata.tsv
 CLAUDE.md
 *.sif
+vendor
 
 # editor / OS cruft
 *.pyc
