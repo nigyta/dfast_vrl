@@ -173,6 +173,7 @@ class VADR2DDBJ:
         vadr_prefix = os.path.basename(self.vadr_dir)
         ftr_file = os.path.join(self.vadr_dir, vadr_prefix + ".vadr.ftr")
         self.set_features(ftr_file)
+        self.remove_stemloops_overlapping_gap()
         self.modify_incomplete_cds()
         self.change_mat_peptide_to_misc()
         self.check_completeness()
@@ -287,6 +288,30 @@ class VADR2DDBJ:
             appended_features.add(str(feature))
 
 
+
+    def remove_stemloops_overlapping_gap(self):
+        """
+        Remove stem_loop features that overlap (even partially) an assembly_gap.
+        A stem_loop sitting on an assembly_gap has little/no sequence evidence,
+        so it should not be reported.
+        """
+        for seq_record in self.seq_dict.values():
+            gap_locations = [f.location for f in seq_record.features if f.type == "assembly_gap"]
+            if not gap_locations:
+                continue
+            kept_features = []
+            for feature in seq_record.features:
+                if feature.type == "stem_loop" and any(
+                    feature.location.start < gap.end and gap.start < feature.location.end
+                    for gap in gap_locations
+                ):
+                    logger.warning(
+                        f"stem_loop:{int(feature.location.start) + 1}-{int(feature.location.end)} "
+                        f"is removed because it overlaps an assembly_gap."
+                    )
+                    continue
+                kept_features.append(feature)
+            seq_record.features = kept_features
 
     def add_UTRs_to_complete_genome(self):
 

@@ -8,7 +8,7 @@ import json
 from dfv.cox1_helper import create_metadata_file
 from dfv.fix_mss_for_cox1 import fix_cox1_mss
 
-VERSION = "1.6.4-0.11"
+VERSION = "1.7.0-0.1"
 
 
 parser = argparse.ArgumentParser(prog="cox1_to_ddbj.py",
