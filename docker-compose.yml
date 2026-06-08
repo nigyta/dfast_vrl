@@ -1,10 +1,14 @@
 # This docker-compose file is only for development use
-version: '3.7'
 services:
 
     app:
-        # image: nigyta/dfast_vrl:latest
-        image: nigyta/dfast_vrl:1.6.4-0.6
+        # Use the locally-built slim image (built from ./Dockerfile). Compose reuses
+        # it if present; run `docker compose build` (or VS Code "Rebuild Container")
+        # to rebuild after Dockerfile changes.
+        image: dfast_vrl:slim
+        # Image is linux/amd64 (FROM --platform in the Dockerfile); run it as such
+        # on arm64 hosts (Apple Silicon) via emulation.
+        platform: linux/amd64
         build:
             context: .
         command: tail -f /dev/null

@@ -1,0 +1,36 @@
+// dfast_vrl dev container. Reuses the project's root docker-compose.yml, whose
+// `app` service builds the canonical (slim) Dockerfile and bind-mounts the repo
+// to /dfast_vrl, ./dev to /data, and ../vadr_models to /vadr_models.
+// Docs: https://aka.ms/devcontainer.json
+{
+	"name": "dfast_vrl",
+
+	"dockerComposeFile": [
+		"../docker-compose.yml"
+	],
+	"service": "app",
+
+	// The app expects its source at /dfast_vrl (the dfast_vrl / vadr2mss.py /
+	// cox1_to_ddbj.py symlinks in /usr/bin point there). The root compose
+	// bind-mounts the repo to /dfast_vrl, so edits are live in the container.
+	"workspaceFolder": "/dfast_vrl",
+
+	// Stop the compose project when VS Code disconnects.
+	"shutdownAction": "stopCompose",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python"
+			],
+			"settings": {
+				// Biopython + dr_tools are installed into the system interpreter
+				// (pip --break-system-packages); no conda/venv in this image.
+				"python.defaultInterpreterPath": "/usr/bin/python3"
+			}
+		}
+	},
+
+	// Quick sanity check on first create (does not require VADR models).
+	"postCreateCommand": "dfast_vrl --version"
+}
