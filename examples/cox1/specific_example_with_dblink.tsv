@@ -1,0 +1,4 @@
+_	source	source	source	source	source	source	DBLINK	DBLINK	DBLINK
+_entry	organism	isolate	strain	collection_date	geo_loc_name	note	project	biosample	sequence read archive
+cox1_test	Caridina serratirostris	isolate-1		2023-01-01	Japan:Shizuoka, Mishima	First isolate	PRJDB9999	SAMD00999999	SRR999999
+cox1_test2	Caridina multidentata	isolate-2	strain_X	2023-01-02	Japan:Tokyo	Second isolate

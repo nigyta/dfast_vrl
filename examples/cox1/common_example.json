@@ -1,13 +1,11 @@
 {
     "SUBMITTER": {
         "ab_name": [
-            "Fujisawa,T.",
-            "Mori,H.",
-            "Tanizawa,Y.",
-            "Nakamura,Y.",
-            "Arita,M."
+            "Rodriguez,A.",
+            "Matsui,H.",
+            "Suzuki,I."
         ],
-        "contact": "Masanori Arita",
+        "contact": "Ichiro Suzuki",
         "email": "mss@ddbj.nig.ac.jp",
         "url": "https://www.ddbj.nig.ac.jp/",
         "institute": "National Institute of Genetics",
@@ -22,11 +20,11 @@
         {
             "title": "COX1 sequences for XXXXX",
             "ab_name": [
-                "Fujisawa,T.",
-                "Tanizawa,Y."
+              "Rodriguez,A.",
+              "Matsui,H.",
+              "Suzuki,I."
             ],
-            "status": "Unpublished",
-            "year": 2026
+            "status": "Unpublished"
         }
     ],
     "COMMENT": [
