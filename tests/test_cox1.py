@@ -68,6 +68,8 @@ def test_missing_input_aborts(dfv_python: str, cox1_bin: Path, tmp_path: Path) -
             str(cox1_bin),
             "-i",
             str(tmp_path / "does_not_exist.fa"),
+            "-m",
+            str(COX1_METADATA),
             "-o",
             str(tmp_path / "out"),
         ],
@@ -83,11 +85,21 @@ def test_existing_out_dir_requires_force(dfv_python: str, cox1_bin: Path, tmp_pa
     out_dir = tmp_path / "out"
     out_dir.mkdir()
     result = run_cli(
-        [dfv_python, str(cox1_bin), "-i", str(COX1_FASTA), "-o", str(out_dir)],
+        [
+            dfv_python,
+            str(cox1_bin),
+            "-i",
+            str(COX1_FASTA),
+            "-m",
+            str(COX1_METADATA),
+            "-o",
+            str(out_dir),
+        ],
         timeout=60,
     )
     assert result.returncode != 0
-    assert "--force" in result.stderr
+    # Not argparse's usage line, which also mentions --force.
+    assert "already exists" in result.stderr
 
 
 # ---------- End-to-end pipeline ----------
@@ -189,17 +201,99 @@ def test_report_json(cox1_out: Path) -> None:
     assert report["annotation"]["number_of_sequence"] == 2
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "Known defect: fix_cox1_mss copies every SPECIFIC column verbatim, so "
-        "columns left blank for an entry (strain for cox1_test, isolate for "
-        "cox1_test2) are emitted as qualifiers with an empty value, which DDBJ "
-        "MSS rejects. Remove this xfail once the empty values are filtered out."
-    ),
-)
 def test_no_empty_qualifier_values(cox1_out: Path) -> None:
-    """No qualifier may be written with an empty value."""
+    """No qualifier may be written with an empty value.
+
+    Columns a submitter left blank for a given entry (``strain`` for cox1_test,
+    ``isolate`` for cox1_test2) and unfilled ``##COMMON`` keys (REFERENCE
+    author/year) must be dropped, not emitted with an empty value.
+    """
     rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
     empty = [(e, f, k) for e, f, _loc, k, v in rows if k and not v]
     assert not empty, f"qualifiers with empty values: {empty}"
+
+
+# ---------- Mandatory per-entry metadata ----------
+#
+# organism is required by DDBJ MSS and, COX1 being a barcode gene, can only come
+# from the ##SPECIFIC block. These cases used to produce a clean exit(0) and an
+# MSS file whose source feature held nothing but mol_type and organelle.
+
+def _write_metadata(path: Path, specific_rows: str) -> Path:
+    """Build a metadata file with a valid COMMON block and the given SPECIFIC rows."""
+    path.write_text(
+        "##COMMON - DO NOT CHANGE THIS LINE\n"
+        '"COMMON": {\n'
+        '\t"SUBMITTER": {"submitter": "Tanizawa,Y.", "contact": "Y Tanizawa",\n'
+        '\t\t"email": "mss@ddbj.nig.ac.jp", "institute": "NIG",\n'
+        '\t\t"department": "DDBJ", "country": "Japan"},\n'
+        '\t"REFERENCE": {"reference": "COX1 test", "author": "", "year": ""}\n'
+        "}\n"
+        "##SPECIFIC - DO NOT CHANGE THIS LINE\n" + specific_rows
+    )
+    return path
+
+
+def _run_cox1(dfv_python: str, tmp_path: Path, metadata: Path) -> "object":
+    from conftest import COX1_BIN
+
+    require_model("COX1")
+    require_path(COX1_FASTA, "cox1 input fasta")
+    return run_cli(
+        [
+            dfv_python,
+            str(COX1_BIN),
+            "-i",
+            str(COX1_FASTA),
+            "-m",
+            str(metadata),
+            "-o",
+            str(tmp_path / "out"),
+        ],
+    )
+
+
+def test_entry_not_in_specific_block_aborts(dfv_python: str, tmp_path: Path) -> None:
+    """Entry names that match no sequence (and vice versa) abort the run."""
+    metadata = _write_metadata(
+        tmp_path / "mismatch.tsv",
+        "# entry\torganism\n"
+        "KJ948760\tGenus species\n"
+        "KJ948761\tGenus species\n",
+    )
+    result = _run_cox1(dfv_python, tmp_path, metadata)
+    assert result.returncode != 0, "a full entry-name mismatch must not exit 0"
+    combined = result.stdout + result.stderr
+    # Both directions are reported: unmatched sequences and unmatched rows.
+    assert "cox1_test" in combined
+    assert "KJ948760" in combined
+
+
+def test_missing_organism_aborts(dfv_python: str, tmp_path: Path) -> None:
+    """An entry that is listed but carries no organism aborts the run."""
+    metadata = _write_metadata(
+        tmp_path / "no_organism.tsv",
+        "# entry\torganism\tnote\n"
+        "cox1_test\tGenus species\tfine\n"
+        "cox1_test2\t\tno organism here\n",
+    )
+    result = _run_cox1(dfv_python, tmp_path, metadata)
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "organism" in combined
+    assert "cox1_test2" in combined
+
+
+def test_metadata_file_is_required(dfv_python: str, cox1_bin: Path, tmp_path: Path) -> None:
+    """``-m`` is mandatory: organism has no other source.
+
+    It used to be advertised as optional and then crash with a TypeError, after
+    VADR had already run.
+    """
+    result = run_cli(
+        [dfv_python, str(cox1_bin), "-i", str(COX1_FASTA), "-o", str(tmp_path / "out")],
+        timeout=60,
+    )
+    assert result.returncode != 0
+    assert "metadata_file" in result.stderr
+    assert "Traceback" not in result.stderr

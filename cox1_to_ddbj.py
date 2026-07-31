@@ -25,8 +25,9 @@ parser.add_argument(
         "-m",
         "--metadata_file",
         type=str,
-        help="Metadata file (Tab-separated table) [Optional]",
-        metavar="PATH"
+        help="Metadata file (##COMMON JSON block + ##SPECIFIC per-entry table)",
+        metavar="PATH",
+        required=True
     )
 # model is fixed to COX1, so no need to specify model argument
 # parser.add_argument(
@@ -124,8 +125,8 @@ tbl2genbank(vadr_out_tbl_pass, vadr_out_fasta_pass, out_gbk_file, model)
 # metadata_file = copy_or_create_metadata_file(work_dir, args)
 output_metadata_file, common_metadata, specific_metadata = create_metadata_file(work_dir, args)
 
-print("common_metadata:", common_metadata)
-print("specific_metadata:", specific_metadata)
+logger.debug("common_metadata: %s", common_metadata)
+logger.debug("specific_metadata: %s", specific_metadata)
 
 # metadata fileからisolate名を取得、出力されるMSSファイルのprefixはisolate名に基づいて決定
 # isolate, mss_file_prefix = get_isolate(metadata_file, args)
@@ -135,9 +136,11 @@ annotation_stats = check_annotation_stats(work_dir, vadr_dir, model)
 logger.debug("Annotation stats: %s", annotation_stats)
 seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["number_of_sequence"]
 
-organism = model.organism if hasattr(model, "organism") else None
-    
-# update_metadata_file(metadata_file, seq_status=seq_status, number_of_sequence=number_of_sequence, mol_type=model.mol_type, organism=organism)
+# No model-level organism for COX1: it is a barcode gene sequenced from
+# arbitrary species, so the organism differs per entry and comes from the
+# ##SPECIFIC block. fix_cox1_mss applies it and rejects entries that lack one.
+# update_metadata_file() is likewise unusable here -- it writes a single
+# organism for the whole run and a "complete genome" ff_definition.
 
 
 # Convert .gbk file and metadata file into MSS format.

@@ -24,6 +24,6 @@
 	}
 }
 ##SPECIFIC - DO NOT CHANGE THIS LINE
-# entry	organism	isolate	strain	bioproject	biosample	sequence read archive	collectoin_date	geo_loc_name	note
+# entry	organism	isolate	strain	bioproject	biosample	sequence read archive	collection_date	geo_loc_name	note
 cox1_test	Genus species	isolate-1		PRJDB9999	SAMD999999	SRR99999999	2023-01-01	Asia; Japan; Shizuoka; Mishima	First isolate
 cox1_test2	Genus species		strain_X				2023-01-02	Asia; Japan; Tokyo	Second isolate

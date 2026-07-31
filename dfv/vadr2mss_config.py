@@ -49,6 +49,10 @@ class COX1():
     minfo_file = "$VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.minfo"
     division = "UNK"
     transl_table =5
+    # Deliberately no `organism`: unlike Mpox, where the model implies the
+    # species, COX1 is a barcode gene sequenced from arbitrary organisms. The
+    # organism is per-entry metadata (##SPECIFIC block) and fix_cox1_mss treats
+    # a missing one as an error rather than falling back to a constant.
 
 class Flu():
     command = "v-annotate.pl -f --split --cpu {cpu} --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey flu --mdir $VADRMODELDIR/vadr-models-flu-1.6.3-2 {fasta} {outdir}"

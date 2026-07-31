@@ -1,11 +1,34 @@
-import os
 import logging
+import os
+import sys
 
 logger = logging.getLogger(__name__)
 
+# ##SPECIFIC columns that must not be copied into the source feature: the entry
+# key itself, the mol_type we set ourselves, and the accessions that become
+# DBLINK.
+_NON_SOURCE_COLUMNS = ("entry", "mol_type", "bioproject", "biosample", "sequence read archive")
+
+# DBLINK qualifier name -> ##SPECIFIC column name.
+_DBLINK_COLUMNS = (
+    ("project", "bioproject"),
+    ("biosample", "biosample"),
+    ("sequence read archive", "sequence read archive"),
+)
+
+
 def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None):
-    """
-    Fix MSS file for cox1 (adding source information, etc.)
+    """Rewrite the generic MSS annotation file with COX1-specific source features.
+
+    Each ``source`` feature is rebuilt from the ``##SPECIFIC`` row whose ``entry``
+    matches the sequence id. The generic conversion has no per-entry metadata to
+    work from, so it emits ``organism``/``mol_type`` with empty values.
+
+    ``organism`` is mandatory in DDBJ MSS, and COX1 -- unlike the fixed-organism
+    virus models (cf. ``Mpox.organism`` in ``vadr2mss_config``) -- can only get
+    it from that per-entry block, because a barcode gene is sequenced from
+    arbitrary species. A sequence with no matching row is therefore reported as
+    an error instead of silently yielding a record without an organism.
     """
 
     mss_file = os.path.join(work_dir, f"{mss_file_prefix}.annt.tsv")
@@ -13,144 +36,88 @@ def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None
         logger.error(f"MSS file not found: {mss_file}")
         return
 
-    
-    # dict_model = parse_mdl_file(work_dir)
-    # logger.debug(f"Parsed model info: {dict_model}")
-
-    # dict_seq_model = parse_ftr_file(work_dir)
-    # logger.debug(f"Parsed sequence to model mapping: {dict_seq_model}")
-
-    # subgroup_h = [subgroup for flu_type, segment, subgroup in dict_model.values() if subgroup.startswith("H")]
-    # subgroup_n = [subgroup for flu_type, segment, subgroup in dict_model.values() if subgroup.startswith("N")]
-    # if len(subgroup_h) == 1 and len(subgroup_n) == 1:
-    #     serotype = f"{subgroup_h[0]}{subgroup_n[0]}"
-    #     logger.info(f"Determined serotype by VADR: {serotype}")
-    # elif len(subgroup_h) > 1 or len(subgroup_n) > 1:
-    #     logger.warning(f"Multiple H or N subgroups found: H={subgroup_h}, N={subgroup_n}. Will not set serotype.")
-    #     serotype = ""
-    # else:
-    #     logger.warning(f"Could not determine serotype from subgroups: H={subgroup_h}, N={subgroup_n}. Will not set serotype.")
-    #     serotype = ""
-
-
+    errors = []
+    matched_entries = set()
     out_buffer = []
+
     for feature in read_mss_file(mss_file):
-        feature_type = feature[0][1]
-        if feature_type == "source":
-            seq_id = feature[0][0]
-            location = feature[0][2]
-            feature[0][0] = ""  # set seq_id to empty string for MSS format
-            source_feature = []
-            metadata_dict = specific_metadata.get(seq_id, {})
-            bioproject = metadata_dict.get("bioproject")
-            biosample = metadata_dict.get("biosample")
-            sra = metadata_dict.get("sequence read archive")
-            if bioproject or biosample or sra:
-                dblink_feature = []
-                dblink_feature.append([seq_id, "DBLINK", "", "project", bioproject])
-                dblink_feature.append(["", "", "", "biosample", biosample]) 
-                if sra:
-                    dblink_feature.append(["", "", "", "sequence read archive", sra])                
-                out_buffer.append(dblink_feature)
-                source_feature.append(["", "source", location, "mol_type", "genomic DNA"]) 
-            else:
-                source_feature.append([seq_id, "source", location, "mol_type", "genomic DNA"]) 
-            for key, value in metadata_dict.items():
-                if key not in ["entry", "mol_type", "bioproject", "biosample", "sequence read archive"]:
-                    source_feature.append(["", "", "", key, value])
-            source_feature.append(["", "", "", "organelle", "mitochondrion"])
-            out_buffer.append(source_feature)
+        if feature[0][1] != "source":
+            out_buffer.append(drop_empty_qualifiers(feature))
+            continue
+
+        seq_id, location = feature[0][0], feature[0][2]
+        metadata_dict = specific_metadata.get(seq_id)
+        if metadata_dict is None:
+            errors.append(
+                f"Sequence '{seq_id}' has no matching 'entry' row in the ##SPECIFIC block."
+            )
+            metadata_dict = {}
         else:
-            out_buffer.append(feature)
+            matched_entries.add(seq_id)
+            # Only worth reporting when a row was found; a missing row is
+            # already covered by the error above.
+            if not metadata_dict.get("organism", "").strip():
+                errors.append(f"Sequence '{seq_id}' has no 'organism' in the ##SPECIFIC block.")
+
+        dblink_feature = [
+            ["", "", "", qualifier, metadata_dict[column]]
+            for qualifier, column in _DBLINK_COLUMNS
+            if metadata_dict.get(column, "").strip()
+        ]
+        if dblink_feature:
+            dblink_feature[0][0], dblink_feature[0][1] = seq_id, "DBLINK"
+            out_buffer.append(dblink_feature)
+            # The entry name is already carried by the DBLINK feature above.
+            source_feature = [["", "source", location, "mol_type", "genomic DNA"]]
+        else:
+            source_feature = [[seq_id, "source", location, "mol_type", "genomic DNA"]]
+
+        for key, value in metadata_dict.items():
+            # A blank column means "not provided for this entry". MSS cannot
+            # express a qualifier with an empty value, so such columns are
+            # dropped rather than emitted.
+            if key not in _NON_SOURCE_COLUMNS and value.strip():
+                source_feature.append(["", "", "", key, value])
+        source_feature.append(["", "", "", "organelle", "mitochondrion"])
+        out_buffer.append(source_feature)
+
+    unmatched = sorted(set(specific_metadata) - matched_entries)
+    if unmatched:
+        errors.append(
+            "##SPECIFIC rows matched no sequence -- check the entry names against "
+            f"the FASTA headers: {', '.join(unmatched)}"
+        )
+
+    if errors:
+        for message in errors:
+            logger.error(message)
+        logger.error("Aborted: the MSS file would be missing mandatory qualifiers.")
+        sys.exit(1)
 
     if out_mss_file is None:
-        out_mss_file =  mss_file
-        logger.info(f"Overwriting original MSS file: {mss_file}")           
+        out_mss_file = mss_file
+        logger.info(f"Overwriting original MSS file: {mss_file}")
     with open(out_mss_file, "w") as f:
         out_str = "\n".join(["\t".join(row) for feature in out_buffer for row in feature])
         f.write(out_str + "\n")
-    logger.info(f"Fixed MSS file for influenza virus: {out_mss_file}")
+    logger.info(f"Fixed MSS file for COX1: {out_mss_file}")
 
-# def parse_mdl_file(work_dir):
-#     """
-#     Parse MDL file to get segment names and Flu type and subgroup as dictionary
-#     key: model, value: (flu_type, segment, subgroup)
-#     example: AF387493 -> (B, 4, -)
 
-#     #                                     num   num   num
-#     #idx  model     group      subgroup  seqs  pass  fail
-#     #---  --------  ---------  --------  ----  ----  ----
-#     #---  --------  ---------  --------  ----  ----  ----
-#     1     AF387493  fluB-seg4  -            1     1     0
-#     2     AY191501  fluB-seg6  -            1     1     0
-#     3     AY504599  fluB-seg2  -            1     1     0
-#     4     AY504605  fluB-seg7  -            1     1     0
-#     5     AY504614  fluB-seg8  -            1     1     0
-#     6     EF626631  fluB-seg5  -            1     1     0
-#     7     EF626633  fluB-seg3  -            1     1     0
-#     8     EF626642  fluB-seg1  -            1     1     0
-#     #---  --------  ---------  --------  ----  ----  ----
-#     -     *all*     -          -            8     8     0
-#     -     *none*    -          -            0     0     0
-#     #---  --------  ---------  --------  ----  ----  ----
-#     """
+def drop_empty_qualifiers(feature):
+    """Drop rows whose qualifier value is blank, preserving the feature header.
 
-#     mdl_file = os.path.join(work_dir, "vadr", "vadr.vadr.mdl")
-#     if not os.path.exists(mdl_file):
-#         logger.error(f"MDL file not found: {mdl_file}")
-#         return None
+    The COMMON block mirrors the ``##COMMON`` JSON verbatim, so keys the
+    submitter left blank (an unfilled REFERENCE author, say) reach the MSS file
+    as qualifiers with an empty value, which DDBJ rejects.
+    """
+    kept = [row for row in feature if row[4].strip()]
+    if not kept:
+        return []
+    # Entry / feature / location only ever appear on a feature's first row, so
+    # they have to move across if that row was the one dropped.
+    kept[0] = feature[0][:3] + kept[0][3:]
+    return kept
 
-#     dict_model = {}
-#     with open(mdl_file) as f:
-#         in_table = False
-#         for line in f:
-#             if line.startswith("#") or line.startswith("-"):
-#                 continue
-#             cols = line.strip().split()
-#             if len(cols) < 6:
-#                 continue
-#             model = cols[1]
-#             group = cols[2]
-#             subgroup = cols[3]
-#             flu_type = group.split("-")[0] if "-" in group else None
-#             if flu_type:
-#                 flu_type = flu_type.replace("flu", "").upper()  # "fluA" -> "A", "fluB" -> "B"
-#             else:
-#                 logger.warning(f"Could not determine flu type from group: {group}")
-#                 flu_type = "unknown_type"
-
-#             segment = group.split("-")[1] if "-" in group else None
-#             if segment:
-#                 segment = segment.replace("seg", "")  # "seg1" -> "1"
-#             else:
-#                 logger.warning(f"Could not determine segment from group: {group}")
-#                 segment = "unknown_segment"            
-#             dict_model[model] = (flu_type, segment, subgroup)
-#     return dict_model
-
-# def parse_ftr_file(work_dir):
-#     """
-#     Parse vadr.ftr file to get seq_name and model name as dictionary
-#     Also check consistency of the model (confirm only one model is used for each segment)
-
-#     """
-#     ftr_file = os.path.join(work_dir, "vadr", "vadr.vadr.ftr")
-#     if not os.path.exists(ftr_file):
-#         logger.error(f"FTR file not found: {ftr_file}")
-#         return None
-#     dict_seq_model = {}
-#     with open(ftr_file) as f:
-#         for line in f:
-#             if line.startswith("#"):
-#                 continue
-#             cols = line.strip().split()
-#             seq_name = cols[1]
-#             model = cols[4]
-#             if seq_name in dict_seq_model:
-#                 if dict_seq_model[seq_name] != model:
-#                     logger.error(f"Inconsistent model for sequence {seq_name}: {dict_seq_model[seq_name]} and {model}")
-#             dict_seq_model[seq_name] = model
-#     return dict_seq_model
 
 def read_mss_file(mss_file):
     """
@@ -160,6 +127,8 @@ def read_mss_file(mss_file):
         Buffer = []
         for line in open(fileName):
             rows = line.strip("\n").split("\t")
+            if len(rows) < 5:
+                rows += [""] * (5 - len(rows))
             if rows[0] != "" and len(Buffer) > 0:
                 yield Buffer
                 Buffer = []
@@ -177,11 +146,3 @@ def read_mss_file(mss_file):
     for entry in iterEntries(mss_file):
         for feature in iterFeatures(entry):
             yield feature
-
-if __name__ == "__main__":
-    # test
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-    # fix_flu_mss("flu/test/", "DDBJ")
-    fix_flu_mss("flu/test/", "A_Japan_NIG-xxxxx_2023", out_mss_file="flu/test/A_Japan_NIG-xxxxx_2023.fixed.annt.tsv")
-    print("done")
