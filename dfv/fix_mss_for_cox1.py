@@ -98,6 +98,12 @@ def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None
         first_qualifier, *other_qualifiers = _FIXED_SOURCE_QUALIFIERS
         source_feature = [head + list(first_qualifier)]
         for key, value in metadata_dict.items():
+            # Column names become qualifier names verbatim, and are deliberately
+            # not checked against a list of legal qualifiers -- that is a
+            # separate validator's job. The mandatory four are the exception:
+            # they are looked up by name above, so a misspelt one is reported as
+            # missing.
+            #
             # A blank column means "not provided for this entry". MSS cannot
             # express a qualifier with an empty value, so such columns are
             # dropped rather than emitted.
