@@ -178,6 +178,16 @@ def test_source_features_are_cox1_specific(cox1_out: Path) -> None:
         assert source["organism"] == "Genus species"
         assert source["organelle"] == "mitochondrion"
 
+        # DDBJ builds the DEFINITION line from this; @@[...]@@ is expanded from
+        # the qualifiers of the same source feature.
+        assert source["ff_definition"] == (
+            "@@[organism]@@ @@[isolate]@@ mitochondrial COX1 gene for "
+            "cytochrome c oxidase subunit 1, partial cds"
+        )
+        # Mandatory for a COX1 barcode submission.
+        for mandatory in ("organism", "isolate", "collection_date", "geo_loc_name"):
+            assert source.get(mandatory), f"{entry} lacks {mandatory}"
+
         cds = qualifiers(rows, entry, "CDS")
         assert cds["product"] == "cytochrome c oxidase subunit I"
         assert cds["gene"] == "COX1"
@@ -215,9 +225,28 @@ def test_no_empty_qualifier_values(cox1_out: Path) -> None:
 
 # ---------- Mandatory per-entry metadata ----------
 #
-# organism is required by DDBJ MSS and, COX1 being a barcode gene, can only come
-# from the ##SPECIFIC block. These cases used to produce a clean exit(0) and an
-# MSS file whose source feature held nothing but mol_type and organelle.
+# organism / isolate / collection_date / geo_loc_name are required by DDBJ for a
+# COX1 barcode submission and, COX1 being a barcode gene, can only come from the
+# ##SPECIFIC block. These cases used to produce a clean exit(0) and an MSS file
+# whose source feature held nothing but mol_type and organelle.
+
+MANDATORY_COLUMNS = ("organism", "isolate", "collection_date", "geo_loc_name")
+
+COMPLETE_ROW = {
+    "organism": "Genus species",
+    "isolate": "isolate-1",
+    "collection_date": "2023-01-01",
+    "geo_loc_name": "Asia; Japan; Tokyo",
+}
+
+
+def _specific_block(rows: list[dict]) -> str:
+    """Render ##SPECIFIC rows, filling absent columns with a blank field."""
+    columns = ["entry", *MANDATORY_COLUMNS]
+    lines = ["# " + "\t".join(columns)]
+    lines += ["\t".join(row.get(c, "") for c in columns) for row in rows]
+    return "\n".join(lines) + "\n"
+
 
 def _write_metadata(path: Path, specific_rows: str) -> Path:
     """Build a metadata file with a valid COMMON block and the given SPECIFIC rows."""
@@ -257,9 +286,12 @@ def test_entry_not_in_specific_block_aborts(dfv_python: str, tmp_path: Path) -> 
     """Entry names that match no sequence (and vice versa) abort the run."""
     metadata = _write_metadata(
         tmp_path / "mismatch.tsv",
-        "# entry\torganism\n"
-        "KJ948760\tGenus species\n"
-        "KJ948761\tGenus species\n",
+        _specific_block(
+            [
+                {"entry": "KJ948760", **COMPLETE_ROW},
+                {"entry": "KJ948761", **COMPLETE_ROW},
+            ]
+        ),
     )
     result = _run_cox1(dfv_python, tmp_path, metadata)
     assert result.returncode != 0, "a full entry-name mismatch must not exit 0"
@@ -269,18 +301,22 @@ def test_entry_not_in_specific_block_aborts(dfv_python: str, tmp_path: Path) -> 
     assert "KJ948760" in combined
 
 
-def test_missing_organism_aborts(dfv_python: str, tmp_path: Path) -> None:
-    """An entry that is listed but carries no organism aborts the run."""
+@pytest.mark.parametrize("column", MANDATORY_COLUMNS)
+def test_missing_mandatory_column_aborts(dfv_python: str, tmp_path: Path, column: str) -> None:
+    """Blanking any one mandatory column aborts and names both column and entry."""
     metadata = _write_metadata(
-        tmp_path / "no_organism.tsv",
-        "# entry\torganism\tnote\n"
-        "cox1_test\tGenus species\tfine\n"
-        "cox1_test2\t\tno organism here\n",
+        tmp_path / f"missing_{column}.tsv",
+        _specific_block(
+            [
+                {"entry": "cox1_test", **COMPLETE_ROW},
+                {"entry": "cox1_test2", **COMPLETE_ROW, column: ""},
+            ]
+        ),
     )
     result = _run_cox1(dfv_python, tmp_path, metadata)
     assert result.returncode != 0
     combined = result.stdout + result.stderr
-    assert "organism" in combined
+    assert column in combined
     assert "cox1_test2" in combined
 
 

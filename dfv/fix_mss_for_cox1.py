@@ -5,9 +5,10 @@ import sys
 logger = logging.getLogger(__name__)
 
 # ##SPECIFIC columns that must not be copied into the source feature: the entry
-# key itself, the mol_type we set ourselves, and the accessions that become
-# DBLINK.
-_NON_SOURCE_COLUMNS = ("entry", "mol_type", "bioproject", "biosample", "sequence read archive")
+# key itself and the accessions that become DBLINK. The qualifiers we set
+# ourselves are excluded too (see _FIXED_SOURCE_QUALIFIERS below), so that a
+# submitter restating one does not produce a duplicate.
+_NON_SOURCE_COLUMNS = ("entry", "bioproject", "biosample", "sequence read archive")
 
 # DBLINK qualifier name -> ##SPECIFIC column name.
 _DBLINK_COLUMNS = (
@@ -15,6 +16,25 @@ _DBLINK_COLUMNS = (
     ("biosample", "biosample"),
     ("sequence read archive", "sequence read archive"),
 )
+
+# Required by DDBJ for a COX1 barcode submission. organism and isolate also
+# feed the ff_definition placeholders below, so a blank one would surface as a
+# malformed DEFINITION line rather than an obvious error.
+_MANDATORY_COLUMNS = ("organism", "isolate", "collection_date", "geo_loc_name")
+
+# Qualifiers that are the same for every COX1 record. @@[...]@@ is expanded by
+# the DDBJ toolchain from the qualifiers of the same source feature.
+_FIXED_SOURCE_QUALIFIERS = (
+    ("mol_type", "genomic DNA"),
+    ("organelle", "mitochondrion"),
+    (
+        "ff_definition",
+        "@@[organism]@@ @@[isolate]@@ mitochondrial COX1 gene for "
+        "cytochrome c oxidase subunit 1, partial cds",
+    ),
+)
+
+_RESERVED_COLUMNS = set(_NON_SOURCE_COLUMNS) | {key for key, _ in _FIXED_SOURCE_QUALIFIERS}
 
 
 def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None):
@@ -56,29 +76,35 @@ def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None
             matched_entries.add(seq_id)
             # Only worth reporting when a row was found; a missing row is
             # already covered by the error above.
-            if not metadata_dict.get("organism", "").strip():
-                errors.append(f"Sequence '{seq_id}' has no 'organism' in the ##SPECIFIC block.")
+            missing = [c for c in _MANDATORY_COLUMNS if not metadata_dict.get(c, "").strip()]
+            if missing:
+                errors.append(
+                    f"Sequence '{seq_id}' is missing mandatory ##SPECIFIC "
+                    f"column(s): {', '.join(missing)}."
+                )
 
         dblink_feature = [
             ["", "", "", qualifier, metadata_dict[column]]
             for qualifier, column in _DBLINK_COLUMNS
             if metadata_dict.get(column, "").strip()
         ]
+        head = [seq_id, "source", location]
         if dblink_feature:
             dblink_feature[0][0], dblink_feature[0][1] = seq_id, "DBLINK"
             out_buffer.append(dblink_feature)
             # The entry name is already carried by the DBLINK feature above.
-            source_feature = [["", "source", location, "mol_type", "genomic DNA"]]
-        else:
-            source_feature = [[seq_id, "source", location, "mol_type", "genomic DNA"]]
+            head[0] = ""
 
+        first_qualifier, *other_qualifiers = _FIXED_SOURCE_QUALIFIERS
+        source_feature = [head + list(first_qualifier)]
         for key, value in metadata_dict.items():
             # A blank column means "not provided for this entry". MSS cannot
             # express a qualifier with an empty value, so such columns are
             # dropped rather than emitted.
-            if key not in _NON_SOURCE_COLUMNS and value.strip():
+            if key not in _RESERVED_COLUMNS and value.strip():
                 source_feature.append(["", "", "", key, value])
-        source_feature.append(["", "", "", "organelle", "mitochondrion"])
+        for key, value in other_qualifiers:
+            source_feature.append(["", "", "", key, value])
         out_buffer.append(source_feature)
 
     unmatched = sorted(set(specific_metadata) - matched_entries)
