@@ -21,6 +21,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DFAST_VRL_BIN = REPO_ROOT / "dfast_vrl"
 VADR2MSS_BIN = REPO_ROOT / "vadr2mss.py"
+COX1_BIN = REPO_ROOT / "cox1_to_ddbj.py"
 EXAMPLES_DIR = REPO_ROOT / "examples"
 FLU_DIR = REPO_ROOT / "flu"  # symlink to /data/flu inside the container
 
@@ -86,6 +87,7 @@ _MODEL_MINFO = {
     "sarscov2": ("vadr-models-sarscov2-{ver}/sarscov2.minfo", "VADR_SCOV2_MODELS_VERSION", "1.3-2"),
     "RSV": ("vadr-models-rsv-{ver}/rsv.minfo", "VADR_RSV_MODELS_VERSION", "1.5-2"),
     "Flu": ("vadr-models-flu-1.6.3-2/flu.minfo", None, None),
+    "COX1": ("vadr-models-cox1-{ver}/cox1.minfo", "VADR_COX1_MODELS_VERSION", "1.2-2"),
 }
 
 
@@ -138,3 +140,9 @@ def dfast_vrl_bin() -> Path:
 def vadr2mss_bin() -> Path:
     assert VADR2MSS_BIN.exists(), f"missing executable: {VADR2MSS_BIN}"
     return VADR2MSS_BIN
+
+
+@pytest.fixture(scope="session")
+def cox1_bin() -> Path:
+    assert COX1_BIN.exists(), f"missing executable: {COX1_BIN}"
+    return COX1_BIN
