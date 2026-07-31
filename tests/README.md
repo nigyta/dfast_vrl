@@ -44,22 +44,42 @@ Run a subset:
 pytest tests/test_vadr2mss.py -k mpox
 pytest tests/test_vadr2mss.py -k "flu_A or flu_B"
 pytest tests/test_dfast_vrl.py::test_full_pipeline_scov2
+pytest tests/test_cox1.py
 ```
 
-Inside the Docker image:
+### Inside the dev container (docker compose)
+
+`docker-compose.yml` mounts the repo at `/dfast_vrl` and the models at
+`/vadr_models`, so a running `app` service can execute the suite as-is. This is
+the only environment where every model is present and nothing is skipped.
+
+**pytest is not installed in the image.** Install it once per container — the
+image ships a PEP 668 "externally managed" Python, so plain `pip install` is
+refused and `--break-system-packages` is required:
+
+```bash
+docker compose exec app pip install --break-system-packages pytest
+docker compose exec app bash -lc 'cd /dfast_vrl && pytest tests'
+```
+
+The install does not survive `docker compose down` / a rebuild, so repeat it
+after recreating the container.
+
+### Inside the published image
 
 ```bash
 docker run -it --rm \
     -v $PWD/vadr_models:/vadr_models \
     -v $PWD:/dfast_vrl \
     nigyta/dfast_vrl:latest \
-    bash -lc "pip install pytest && pytest /dfast_vrl/tests"
+    bash -lc "pip install --break-system-packages pytest && pytest /dfast_vrl/tests"
 ```
 
 ## Runtime notes
 
-- Per-test timeout is 30 minutes; mpox (~200 kb) and Flu can take several
-  minutes each.
+- Per-test timeout is 30 minutes. The whole suite takes ~2 min in the dev
+  container (23 tests, all models present); mpox (~200 kb) and Flu dominate.
+  Allow considerably longer on a slower host or under emulation.
 - Each test writes into pytest's `tmp_path`; nothing is left in the repo.
 - The tests treat the original `examples/...` and `/data/flu/...` files as
   read-only (they are passed by path; the scripts copy metadata into the
