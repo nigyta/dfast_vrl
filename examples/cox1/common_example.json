@@ -1,0 +1,39 @@
+{
+    "SUBMITTER": {
+        "ab_name": [
+            "Fujisawa,T.",
+            "Mori,H.",
+            "Tanizawa,Y.",
+            "Nakamura,Y.",
+            "Arita,M."
+        ],
+        "contact": "Masanori Arita",
+        "email": "mss@ddbj.nig.ac.jp",
+        "url": "https://www.ddbj.nig.ac.jp/",
+        "institute": "National Institute of Genetics",
+        "department": "DNA Data Bank of Japan",
+        "country": "Japan",
+        "state": "Shizuoka",
+        "city": "Mishima",
+        "street": "1111 Yata",
+        "zip": "411-8540"
+    },
+    "REFERENCE": [
+        {
+            "title": "COX1 sequences for XXXXX",
+            "ab_name": [
+                "Fujisawa,T.",
+                "Tanizawa,Y."
+            ],
+            "status": "Unpublished",
+            "year": 2026
+        }
+    ],
+    "COMMENT": [
+        {
+            "line": [
+                "comment to be included in all records"
+            ]
+        }
+    ]
+}

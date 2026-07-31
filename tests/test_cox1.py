@@ -1,9 +1,10 @@
 """Operational tests for ``cox1_to_ddbj.py`` (COX1 barcode-gene pipeline).
 
 Unlike ``vadr2mss.py``, this script fixes the VADR model to COX1 and hardcodes
-the MSS file prefix to ``cox1``. Its metadata format is also different: a single
-file holding a ``##COMMON`` JSON block plus a ``##SPECIFIC`` per-entry TSV block
-(see ``examples/cox1/metadata_example.tsv``), parsed by ``dfv/cox1_helper.py``.
+the MSS file prefix to ``cox1``. Its metadata format is also different: a common
+metadata JSON plus a per-sequence TSV with two header rows, matching
+ddbj_mss_tools' batch_wgs_builder (see ``examples/cox1/``), parsed by
+``dfv/cox1_helper.py``.
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ from conftest import EXAMPLES_DIR, require_model, require_path
 
 COX1_DIR = EXAMPLES_DIR / "cox1"
 COX1_FASTA = COX1_DIR / "multi.fa"            # 2 records: cox1_test, cox1_test2
-COX1_METADATA = COX1_DIR / "metadata_example.tsv"
+COX1_COMMON = COX1_DIR / "common_example.json"
+COX1_SPECIFIC = COX1_DIR / "specific_example.tsv"
 
 # cox1_to_ddbj.py L145: the MSS prefix is not derived from the isolate.
 MSS_PREFIX = "cox1"
@@ -69,7 +71,9 @@ def test_missing_input_aborts(dfv_python: str, cox1_bin: Path, tmp_path: Path) -
             "-i",
             str(tmp_path / "does_not_exist.fa"),
             "-m",
-            str(COX1_METADATA),
+            str(COX1_COMMON),
+            "-s",
+            str(COX1_SPECIFIC),
             "-o",
             str(tmp_path / "out"),
         ],
@@ -91,7 +95,9 @@ def test_existing_out_dir_requires_force(dfv_python: str, cox1_bin: Path, tmp_pa
             "-i",
             str(COX1_FASTA),
             "-m",
-            str(COX1_METADATA),
+            str(COX1_COMMON),
+            "-s",
+            str(COX1_SPECIFIC),
             "-o",
             str(out_dir),
         ],
@@ -111,7 +117,8 @@ def cox1_out(dfv_python: str, tmp_path_factory: pytest.TempPathFactory) -> Path:
 
     require_model("COX1")
     require_path(COX1_FASTA, "cox1 input fasta")
-    require_path(COX1_METADATA, "cox1 metadata")
+    require_path(COX1_COMMON, "cox1 common metadata")
+    require_path(COX1_SPECIFIC, "cox1 specific metadata")
 
     out_dir = tmp_path_factory.mktemp("cox1") / "OUT_cox1"
     result = run_cli(
@@ -121,7 +128,9 @@ def cox1_out(dfv_python: str, tmp_path_factory: pytest.TempPathFactory) -> Path:
             "-i",
             str(COX1_FASTA),
             "-m",
-            str(COX1_METADATA),
+            str(COX1_COMMON),
+            "-s",
+            str(COX1_SPECIFIC),
             "-o",
             str(out_dir),
         ],
@@ -161,12 +170,18 @@ def test_seq_fa_holds_both_entries(cox1_out: Path) -> None:
 
 
 def test_common_block_from_metadata(cox1_out: Path) -> None:
-    """The ``##COMMON`` JSON block lands in the MSS COMMON entry."""
+    """The common metadata JSON lands in the MSS COMMON entry."""
     rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
     submitter = qualifiers(rows, "COMMON", "SUBMITTER")
     assert submitter["contact"] == "Masanori Arita"
     assert submitter["institute"] == "National Institute of Genetics"
-    assert qualifiers(rows, "COMMON", "REFERENCE")["title"] == "COX1 sequences for XXXXX"
+    assert submitter["zip"] == "411-8540"  # JSON "zip" -> metadata "ZIP" -> MSS "zip"
+    reference = qualifiers(rows, "COMMON", "REFERENCE")
+    assert reference["title"] == "COX1 sequences for XXXXX"
+    # ab_name is a JSON list; every author must survive the join/split round-trip.
+    authors = [v for e, f, _l, k, v in rows if f == "REFERENCE" and k == "ab_name"]
+    assert authors == ["Fujisawa,T.", "Tanizawa,Y."]
+    assert qualifiers(rows, "COMMON", "COMMENT")["line"] == "comment to be included in all records"
 
 
 def test_source_features_are_cox1_specific(cox1_out: Path) -> None:
@@ -199,9 +214,9 @@ def test_dblink_only_for_entries_with_accessions(cox1_out: Path) -> None:
     rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
     dblink = qualifiers(rows, "cox1_test", "DBLINK")
     assert dblink["project"] == "PRJDB9999"
-    assert dblink["biosample"] == "SAMD999999"
-    assert dblink["sequence read archive"] == "SRR99999999"
-    # cox1_test2 leaves all three blank in the SPECIFIC block.
+    assert dblink["biosample"] == "SAMD00999999"
+    assert dblink["sequence read archive"] == "SRR999999"
+    # cox1_test2 leaves all three blank in the specific TSV.
     assert not qualifiers(rows, "cox1_test2", "DBLINK")
 
 
@@ -211,23 +226,33 @@ def test_report_json(cox1_out: Path) -> None:
     assert report["annotation"]["number_of_sequence"] == 2
 
 
-def test_no_empty_qualifier_values(cox1_out: Path) -> None:
-    """No qualifier may be written with an empty value.
+def test_no_empty_qualifier_values_in_per_entry_features(cox1_out: Path) -> None:
+    """A blank TSV column must be dropped, not emitted as an empty qualifier.
 
-    Columns a submitter left blank for a given entry (``strain`` for cox1_test,
-    ``isolate`` for cox1_test2) and unfilled ``##COMMON`` keys (REFERENCE
-    author/year) must be dropped, not emitted with an empty value.
+    Scoped to the per-entry features. COMMON is exempt on purpose: metadataUtil
+    renders every mss_required field even when unset, as a template for the
+    submitter to fill in, and dr_tools rejects the record if those rows are
+    missing.
     """
     rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
-    empty = [(e, f, k) for e, f, _loc, k, v in rows if k and not v]
+    empty = [
+        (e, f, k) for e, f, _loc, k, v in rows if k and not v and e != "COMMON"
+    ]
     assert not empty, f"qualifiers with empty values: {empty}"
+
+
+def test_dfast_record_json_is_written(cox1_out: Path) -> None:
+    """mss2json must succeed; dr_tools validates the COMMON block it receives."""
+    log = (cox1_out / "application.log").read_text()
+    assert "Failed to convert MSS to JSON" not in log, log[-2000:]
+    assert (cox1_out / "dfast_record.json").exists()
 
 
 # ---------- Mandatory per-entry metadata ----------
 #
 # organism / isolate / collection_date / geo_loc_name are required by DDBJ for a
 # COX1 barcode submission and, COX1 being a barcode gene, can only come from the
-# ##SPECIFIC block. These cases used to produce a clean exit(0) and an MSS file
+# specific TSV. These cases used to produce a clean exit(0) and an MSS file
 # whose source feature held nothing but mol_type and organelle.
 
 MANDATORY_COLUMNS = ("organism", "isolate", "collection_date", "geo_loc_name")
@@ -236,64 +261,48 @@ COMPLETE_ROW = {
     "organism": "Genus species",
     "isolate": "isolate-1",
     "collection_date": "2023-01-01",
-    "geo_loc_name": "Asia; Japan; Tokyo",
+    "geo_loc_name": "Japan:Tokyo",
 }
 
 
-def _specific_block(rows: list[dict]) -> str:
-    """Render ##SPECIFIC rows, filling absent columns with a blank field."""
-    columns = ["entry", *MANDATORY_COLUMNS]
-    lines = ["# " + "\t".join(columns)]
-    lines += ["\t".join(row.get(c, "") for c in columns) for row in rows]
-    return "\n".join(lines) + "\n"
+def write_specific_tsv(path: Path, rows: list[dict], row_key: str = "_entry") -> Path:
+    """Render a two-header-row specific TSV, blanking columns a row omits."""
+    columns = [("_", row_key)] + [("source", c) for c in MANDATORY_COLUMNS]
+    lines = [
+        "\t".join(feature for feature, _ in columns),
+        "\t".join(qualifier for _, qualifier in columns),
+    ]
+    lines += ["\t".join(row.get(q, "") for _, q in columns) for row in rows]
+    return _written(path, "\n".join(lines) + "\n")
 
 
-def _write_metadata(path: Path, specific_rows: str) -> Path:
-    """Build a metadata file with a valid COMMON block and the given SPECIFIC rows."""
-    path.write_text(
-        "##COMMON - DO NOT CHANGE THIS LINE\n"
-        '"COMMON": {\n'
-        '\t"SUBMITTER": {"submitter": "Tanizawa,Y.", "contact": "Y Tanizawa",\n'
-        '\t\t"email": "mss@ddbj.nig.ac.jp", "institute": "NIG",\n'
-        '\t\t"department": "DDBJ", "country": "Japan"},\n'
-        '\t"REFERENCE": {"reference": "COX1 test", "author": "", "year": ""}\n'
-        "}\n"
-        "##SPECIFIC - DO NOT CHANGE THIS LINE\n" + specific_rows
-    )
+def _written(path: Path, text: str) -> Path:
+    path.write_text(text)
     return path
 
 
-def _run_cox1(dfv_python: str, tmp_path: Path, metadata: Path) -> "object":
+def _run_cox1(dfv_python: str, tmp_path: Path, specific: Path, fasta: Path | None = COX1_FASTA):
     from conftest import COX1_BIN
 
     require_model("COX1")
     require_path(COX1_FASTA, "cox1 input fasta")
-    return run_cli(
-        [
-            dfv_python,
-            str(COX1_BIN),
-            "-i",
-            str(COX1_FASTA),
-            "-m",
-            str(metadata),
-            "-o",
-            str(tmp_path / "out"),
-        ],
-    )
+    cmd = [dfv_python, str(COX1_BIN), "-m", str(COX1_COMMON), "-s", str(specific),
+           "-o", str(tmp_path / "out")]
+    if fasta is not None:
+        cmd[2:2] = ["-i", str(fasta)]
+    return run_cli(cmd)
 
 
 def test_entry_not_in_specific_block_aborts(dfv_python: str, tmp_path: Path) -> None:
     """Entry names that match no sequence (and vice versa) abort the run."""
-    metadata = _write_metadata(
+    specific = write_specific_tsv(
         tmp_path / "mismatch.tsv",
-        _specific_block(
-            [
-                {"entry": "KJ948760", **COMPLETE_ROW},
-                {"entry": "KJ948761", **COMPLETE_ROW},
-            ]
-        ),
+        [
+            {"_entry": "KJ948760", **COMPLETE_ROW},
+            {"_entry": "KJ948761", **COMPLETE_ROW},
+        ],
     )
-    result = _run_cox1(dfv_python, tmp_path, metadata)
+    result = _run_cox1(dfv_python, tmp_path, specific)
     assert result.returncode != 0, "a full entry-name mismatch must not exit 0"
     combined = result.stdout + result.stderr
     # Both directions are reported: unmatched sequences and unmatched rows.
@@ -304,32 +313,93 @@ def test_entry_not_in_specific_block_aborts(dfv_python: str, tmp_path: Path) -> 
 @pytest.mark.parametrize("column", MANDATORY_COLUMNS)
 def test_missing_mandatory_column_aborts(dfv_python: str, tmp_path: Path, column: str) -> None:
     """Blanking any one mandatory column aborts and names both column and entry."""
-    metadata = _write_metadata(
+    specific = write_specific_tsv(
         tmp_path / f"missing_{column}.tsv",
-        _specific_block(
-            [
-                {"entry": "cox1_test", **COMPLETE_ROW},
-                {"entry": "cox1_test2", **COMPLETE_ROW, column: ""},
-            ]
-        ),
+        [
+            {"_entry": "cox1_test", **COMPLETE_ROW},
+            {"_entry": "cox1_test2", **COMPLETE_ROW, column: ""},
+        ],
     )
-    result = _run_cox1(dfv_python, tmp_path, metadata)
+    result = _run_cox1(dfv_python, tmp_path, specific)
     assert result.returncode != 0
     combined = result.stdout + result.stderr
     assert column in combined
     assert "cox1_test2" in combined
 
 
-def test_metadata_file_is_required(dfv_python: str, cox1_bin: Path, tmp_path: Path) -> None:
-    """``-m`` is mandatory: organism has no other source.
+def test_metadata_files_are_required(dfv_python: str, cox1_bin: Path, tmp_path: Path) -> None:
+    """``-m`` and ``-s`` are mandatory: organism has no other source.
 
-    It used to be advertised as optional and then crash with a TypeError, after
-    VADR had already run.
+    The metadata file used to be advertised as optional and then crash with a
+    TypeError, after VADR had already run.
     """
     result = run_cli(
         [dfv_python, str(cox1_bin), "-i", str(COX1_FASTA), "-o", str(tmp_path / "out")],
         timeout=60,
     )
     assert result.returncode != 0
-    assert "metadata_file" in result.stderr
+    assert "--common" in result.stderr and "--specific" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+# ---------- batch_wgs_builder-compatible TSV handling ----------
+
+def test_file_path_row_key(dfv_python: str, tmp_path: Path) -> None:
+    """``_file_path`` keys rows by FASTA, as batch_wgs_builder does, with no -i."""
+    require_path(COX1_FASTA, "cox1 input fasta")
+    from Bio import SeqIO
+
+    paths = []
+    for record in SeqIO.parse(str(COX1_FASTA), "fasta"):
+        single = tmp_path / f"{record.id}.fa"
+        SeqIO.write([record], str(single), "fasta")
+        paths.append(single)
+
+    specific = write_specific_tsv(
+        tmp_path / "by_file.tsv",
+        [{"_file_path": str(p), **COMPLETE_ROW, "isolate": f"iso-{i}"}
+         for i, p in enumerate(paths, 1)],
+        row_key="_file_path",
+    )
+    result = _run_cox1(dfv_python, tmp_path, specific, fasta=None)
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    rows = parse_annt(tmp_path / "out" / f"{MSS_PREFIX}.annt.tsv")
+    assert qualifiers(rows, "cox1_test", "source")["isolate"] == "iso-1"
+    assert qualifiers(rows, "cox1_test2", "source")["isolate"] == "iso-2"
+
+
+def test_file_path_rejects_input_fasta(dfv_python: str, tmp_path: Path) -> None:
+    """``-i`` together with ``_file_path`` is ambiguous and is refused."""
+    specific = write_specific_tsv(
+        tmp_path / "by_file.tsv",
+        [{"_file_path": str(COX1_FASTA), **COMPLETE_ROW}],
+        row_key="_file_path",
+    )
+    result = _run_cox1(dfv_python, tmp_path, specific)
+    assert result.returncode != 0
+    assert "_file_path" in result.stdout + result.stderr
+
+
+def test_common_only_feature_in_tsv_is_refused(dfv_python: str, tmp_path: Path) -> None:
+    """COMMENT is shared by every entry, so a per-row column cannot be honoured."""
+    specific = _written(
+        tmp_path / "with_comment.tsv",
+        "_\tsource\tCOMMENT\n_entry\torganism\tline\ncox1_test\tGenus species\thi\n",
+    )
+    result = _run_cox1(dfv_python, tmp_path, specific)
+    assert result.returncode != 0
+    combined = result.stdout + result.stderr
+    assert "COMMENT" in combined and "--common" in combined
+
+
+def test_malformed_tsv_fails_before_vadr(dfv_python: str, tmp_path: Path) -> None:
+    """A TSV with neither row key aborts in seconds, not after annotating."""
+    specific = _written(
+        tmp_path / "no_key.tsv", "_\tsource\n_nope\torganism\nx\tGenus species\n"
+    )
+    result = _run_cox1(dfv_python, tmp_path, specific)
+    assert result.returncode != 0
+    assert "_entry" in result.stdout + result.stderr
+    # VADR never ran.
+    assert not (tmp_path / "out" / "vadr").exists()

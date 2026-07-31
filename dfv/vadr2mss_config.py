@@ -51,7 +51,7 @@ class COX1():
     transl_table =5
     # Deliberately no `organism`: unlike Mpox, where the model implies the
     # species, COX1 is a barcode gene sequenced from arbitrary organisms. The
-    # organism is per-entry metadata (##SPECIFIC block) and fix_cox1_mss treats
+    # organism is per-entry metadata (specific TSV) and fix_cox1_mss treats
     # a missing one as an error rather than falling back to a constant.
 
 class Flu():

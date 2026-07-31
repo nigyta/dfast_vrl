@@ -16,12 +16,13 @@ run for each release.
 - `test_cox1.py`
   - `--help`, missing-input handling, `--force` semantics.
   - Full **COX1** pipeline on the two-record multi-FASTA
-    (`examples/cox1/multi.fa` + `examples/cox1/metadata_example.tsv`), asserting
-    the MSS `COMMON` block, the per-entry `source`/`CDS`/`DBLINK` qualifiers and
-    the report JSON.
-  - One `xfail` (`test_no_empty_qualifier_values`) pins an open defect: blank
-    `##SPECIFIC` columns are emitted as empty-valued qualifiers. Drop the marker
-    when that is fixed.
+    (`examples/cox1/multi.fa` + `common_example.json` + `specific_example.tsv`),
+    asserting the MSS `COMMON` block, the per-entry `source`/`CDS`/`DBLINK`
+    qualifiers and the report JSON.
+  - Metadata is in the ddbj_mss_tools `batch_wgs_builder` format: a common JSON
+    plus a two-header-row TSV keyed by `_entry` or `_file_path`. Both row keys
+    are covered, as are the refusals (mandatory columns, entry mismatch,
+    `COMMENT` in the TSV).
 
 Tests that need a particular VADR model are skipped automatically when the
 corresponding `*.minfo` file is missing under `$VADRMODELDIR` (default

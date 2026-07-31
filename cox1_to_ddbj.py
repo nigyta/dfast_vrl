@@ -5,7 +5,12 @@ import sys
 import argparse
 import logging
 import json
-from dfv.cox1_helper import create_metadata_file
+from dfv.cox1_helper import (
+    load_common_json,
+    parse_specific_tsv,
+    resolve_entries,
+    write_metadata_file,
+)
 from dfv.fix_mss_for_cox1 import fix_cox1_mss
 
 VERSION = "1.7.0-0.1"
@@ -14,7 +19,10 @@ VERSION = "1.7.0-0.1"
 parser = argparse.ArgumentParser(prog="cox1_to_ddbj.py",
                                  description=f'COX1 to DDBJ converter: Pipeline for COX1 gene submission to DDBJ. (ver. {VERSION})'
                                  )
-parser.add_argument("-i", "--input", metavar="FILE", help="Input single/multi-FASTA file", required=True)
+parser.add_argument(
+    "-i", "--input", metavar="FILE",
+    help="Input single/multi-FASTA file. Required when the specific TSV keys rows "
+         "by '_entry'; omit it when the TSV keys rows by '_file_path'.")
 parser.add_argument("-o", "--out_dir", metavar="FILE", help="Output Directory", required=True)
 parser.add_argument(
     '--isolate',
@@ -23,9 +31,19 @@ parser.add_argument(
     metavar="STR")
 parser.add_argument(
         "-m",
-        "--metadata_file",
+        "--common",
         type=str,
-        help="Metadata file (##COMMON JSON block + ##SPECIFIC per-entry table)",
+        help="Common metadata JSON (SUBMITTER, REFERENCE, COMMENT, DATE), "
+             "in the ddbj_mss_tools batch_wgs_builder format",
+        metavar="PATH",
+        required=True
+    )
+parser.add_argument(
+        "-s",
+        "--specific",
+        type=str,
+        help="Per-sequence metadata TSV with two header rows "
+             "(row 1 = feature, row 2 = qualifier)",
         metavar="PATH",
         required=True
     )
@@ -64,11 +82,15 @@ from dfv.common import get_isolate  # , get_logger
 from dfv.vadr2mss_config import models
 from dfv.check_annotation_stats import check_annotation_stats
 
-# cheking input fasta
+# cheking input files
 input_fasta = args.input
-if not os.path.exists(input_fasta):
+if input_fasta and not os.path.exists(input_fasta):
     sys.stderr.write(f"cox1_to_ddbj.py: error: Specified FASTA file does not exist. [{input_fasta}]\n")
     exit(1)
+for label, path in (("common metadata", args.common), ("specific metadata", args.specific)):
+    if not os.path.exists(path):
+        sys.stderr.write(f"cox1_to_ddbj.py: error: Specified {label} file does not exist. [{path}]\n")
+        exit(1)
 
 
 # setting output directory
@@ -111,6 +133,22 @@ logger.info("Selected VADR Model: %s", "COX1")
 
 
 
+# Read the metadata before running VADR: a malformed TSV should fail in
+# seconds rather than after a full annotation run.
+try:
+    common_metadata = load_common_json(args.common)
+    specific_rows, row_key = parse_specific_tsv(args.specific)
+    input_fasta, specific_metadata = resolve_entries(
+        specific_rows, row_key, input_fasta, work_dir)
+except ValueError as e:
+    logger.error("%s", e)
+    exit(1)
+
+output_metadata_file = write_metadata_file(work_dir, common_metadata)
+logger.debug("common_metadata: %s", common_metadata)
+logger.debug("specific_metadata: %s", specific_metadata)
+
+
 # Run VADR
 vadr_dir = os.path.join(work_dir, "vadr")
 vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings = run_vadr(input_fasta, vadr_dir, model, cpu=1)
@@ -118,15 +156,6 @@ vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings = run_vadr(input_fasta, va
 # Convert VADR result into .gbk
 out_gbk_file = os.path.join(work_dir, "annotation.gbk")
 tbl2genbank(vadr_out_tbl_pass, vadr_out_fasta_pass, out_gbk_file, model)
-
-
-
-# prepare metadata file
-# metadata_file = copy_or_create_metadata_file(work_dir, args)
-output_metadata_file, common_metadata, specific_metadata = create_metadata_file(work_dir, args)
-
-logger.debug("common_metadata: %s", common_metadata)
-logger.debug("specific_metadata: %s", specific_metadata)
 
 # metadata fileからisolate名を取得、出力されるMSSファイルのprefixはisolate名に基づいて決定
 # isolate, mss_file_prefix = get_isolate(metadata_file, args)
@@ -138,7 +167,7 @@ seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["n
 
 # No model-level organism for COX1: it is a barcode gene sequenced from
 # arbitrary species, so the organism differs per entry and comes from the
-# ##SPECIFIC block. fix_cox1_mss applies it and rejects entries that lack one.
+# specific TSV. fix_cox1_mss applies it and rejects entries that lack one.
 # update_metadata_file() is likewise unusable here -- it writes a single
 # organism for the whole run and a "complete genome" ff_definition.
 
