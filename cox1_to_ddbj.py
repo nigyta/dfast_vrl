@@ -75,12 +75,15 @@ if len(sys.argv)==1:
 
 args = parser.parse_args()
 
+from Bio import SeqIO
+
 from dfv.vadr_generic import main as run_vadr
 from dfv.tbl2genbank import tbl2genbank
 from dfv.genbank2mss import MSS2
 from dfv.common import get_isolate  # , get_logger
 from dfv.vadr2mss_config import models
-from dfv.check_annotation_stats import check_annotation_stats
+from dfv.check_cox1_annotation import check_cox1_annotation
+from dfv.cox1_transl_table import parse_ftr_models, transl_table_by_entry
 
 # cheking input files
 input_fasta = args.input
@@ -153,17 +156,24 @@ logger.debug("specific_metadata: %s", specific_metadata)
 vadr_dir = os.path.join(work_dir, "vadr")
 vadr_out_tbl_pass, vadr_out_fasta_pass, vadr_warnings = run_vadr(input_fasta, vadr_dir, model, cpu=1)
 
-# Convert VADR result into .gbk
+# Convert VADR result into .gbk. The COX1 model set spans six genetic codes, so
+# the translation table comes from whichever model VADR matched each sequence to
+# rather than from one constant.
+models_by_entry = parse_ftr_models(vadr_dir)
+table_by_entry = transl_table_by_entry(vadr_dir, model)
 out_gbk_file = os.path.join(work_dir, "annotation.gbk")
-tbl2genbank(vadr_out_tbl_pass, vadr_out_fasta_pass, out_gbk_file, model)
+tbl2genbank(vadr_out_tbl_pass, vadr_out_fasta_pass, out_gbk_file, model, table_by_entry)
 
 # metadata fileからisolate名を取得、出力されるMSSファイルのprefixはisolate名に基づいて決定
 # isolate, mss_file_prefix = get_isolate(metadata_file, args)
 
-annotation_stats = check_annotation_stats(work_dir, vadr_dir, model)
-# {'status': 'complete', 'total_length': 10735, 'model_length': 10735, 'query_coverage': '100.00%', 'qap_length': 0, 'cds_completeness': '1 / 0 / 1 [intact/partial/expected]'}
-logger.debug("Annotation stats: %s", annotation_stats)
-seq_status, number_of_sequence = annotation_stats["status"], annotation_stats["number_of_sequence"]
+# check_annotation_stats is not used here: it reports one set of figures for the
+# whole run against a single reference model, which does not describe a
+# submission of independent barcode sequences (its query_coverage summed every
+# query length over one model length). check_cox1_annotation reports per entry.
+annotated_records = list(SeqIO.parse(out_gbk_file, "genbank"))
+entry_reports = check_cox1_annotation(annotated_records, models_by_entry)
+logger.debug("Entry reports: %s", entry_reports)
 
 # No model-level organism for COX1: it is a barcode gene sequenced from
 # arbitrary species, so the organism differs per entry and comes from the
@@ -192,7 +202,14 @@ if vadr_warnings:
 out_report_file = os.path.join(work_dir, "dfv_report.json")
 logger.info(f"Writing report json to {out_report_file}")
 with open(out_report_file, "w") as f:
-    json.dump({"annotation": annotation_stats, "warnings": warnings}, f, indent=4)
+    json.dump(
+        {
+            "annotation": {"number_of_sequence": len(entry_reports)},
+            "entries": entry_reports,
+            "warnings": warnings,
+        },
+        f, indent=4,
+    )
 
 # Convert MSS file into JSON
 # ver3.10以上ならモジュールインポートしてjson出力

@@ -54,12 +54,7 @@ def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None
 
     for feature in read_mss_file(mss_file):
         if feature[0][1] != "source":
-            # COMMON passes through untouched. Its blank qualifiers are not a
-            # defect: metadataUtil.renderCommonEntry emits every mss_required
-            # field even when unset, as a template for the submitter to fill in
-            # (see MetadataField.render, which writes three empty ab_name rows
-            # on purpose). Dropping them makes dr_tools reject the record.
-            out_buffer.append(feature)
+            out_buffer.append(drop_empty_qualifiers(feature))
             continue
 
         seq_id, location = feature[0][0], feature[0][2]
@@ -132,6 +127,29 @@ def fix_cox1_mss(work_dir, mss_file_prefix, specific_metadata, out_mss_file=None
         out_str = "\n".join(["\t".join(row) for feature in out_buffer for row in feature])
         f.write(out_str + "\n")
     logger.info(f"Fixed MSS file for COX1: {out_mss_file}")
+
+
+def drop_empty_qualifiers(feature):
+    """Drop rows whose qualifier value is blank, preserving the feature header.
+
+    metadataUtil.renderCommonEntry emits every mss_required field even when
+    unset (MetadataField.render writes three blank ab_name rows on purpose),
+    which suits a template for a submitter to fill in but not a finished file:
+    the DDBJ validator raises ANN2645 "Missing value for the qualifier" on any
+    qualifier row without a value, unless the qualifier is declared value-less.
+
+    No value-less qualifier can reach here. The seven in metadataDefinition.tsv
+    (environmental_sample, focus, germline, macronuclear, proviral, rearranged,
+    transgenic) are all source qualifiers, and the source feature is rebuilt
+    from the specific TSV rather than passed through this function.
+    """
+    kept = [row for row in feature if row[4].strip()]
+    if not kept:
+        return []
+    # Entry / feature / location only ever appear on a feature's first row, so
+    # they have to move across if that row was the one dropped.
+    kept[0] = feature[0][:3] + kept[0][3:]
+    return kept
 
 
 def read_mss_file(mss_file):

@@ -157,20 +157,26 @@ def remove_gene_feature_and_add_gene_qualifier(r):
             logger.warning(f"No gene features found for {str(feature.location)}")
     r.features = other_features
 
-def add_qualifiers_to_cds_feature(r, model):
+def add_qualifiers_to_cds_feature(r, model, transl_table_by_entry=None):
     """
     Add translation qualifier to CDS features, as well as transl_table and codon_start.
     Product names will be modified to curated names (Mpox)
+
+    ``transl_table_by_entry`` overrides the model-level table per sequence. COX1
+    needs it because its model set spans six genetic codes and VADR picks one
+    model per sequence; the other viruses have a single table and pass None.
     """
 
     for feature in r.features:
         if feature.type != "CDS":
             continue
-        
+
         # add tranl_table
         if "codon_start" not in feature.qualifiers:
             feature.qualifiers["codon_start"] = [1]
         transl_table = model.transl_table if hasattr(model, "transl_table") else 1
+        if transl_table_by_entry:
+            transl_table = transl_table_by_entry.get(r.id, transl_table)
         if "transl_table" not in feature.qualifiers:
             feature.qualifiers["transl_table"] = [transl_table]
 
@@ -216,13 +222,15 @@ def sort_features(r):
     r.features = sorted(r.features, key=lambda x: x.location.start)
 
 
-def tbl2genbank(tbl_file, fasta_file, out_gbk_file, model):
+def tbl2genbank(tbl_file, fasta_file, out_gbk_file, model, transl_table_by_entry=None):
     logger.info(f"Converting {tbl_file} and {fasta_file} into {out_gbk_file}")
     R = [r for r in parse_tbl(tbl_file, fasta_file)]
     for r in R:
         r.annotations["molecule_type"] = model.mol_type
         remove_gene_feature_and_add_gene_qualifier(r)
-        add_qualifiers_to_cds_feature(r, model)  # model is provided to specify transl_table number.
+        # model is provided to specify transl_table number; transl_table_by_entry
+        # overrides it per sequence (COX1).
+        add_qualifiers_to_cds_feature(r, model, transl_table_by_entry)
         add_gaps(r)
         sort_features(r)
     logger.info("Writing .gbk file [%s]", out_gbk_file)

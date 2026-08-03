@@ -246,7 +246,6 @@ def test_source_features_are_cox1_specific(cox1_out: Path) -> None:
         cds = qualifiers(rows, entry, "CDS")
         assert cds["product"] == "cytochrome c oxidase subunit I"
         assert cds["gene"] == "COX1"
-        assert cds["transl_table"] == "5"  # invertebrate mitochondrial code
 
 
 def test_dblink_only_for_entries_with_accessions(cox1_out: Path) -> None:
@@ -264,63 +263,75 @@ def test_report_json(cox1_out: Path) -> None:
     report = load_json(cox1_out / "dfv_report.json")
     assert "annotation" in report and "warnings" in report
     assert report["annotation"]["number_of_sequence"] == 2
+    # Per-entry, because a COX1 submission is independent barcode sequences
+    # rather than one genome (see check_cox1_annotation).
+    assert {e["entry"] for e in report["entries"]} == set(read_specific_example())
 
 
-def test_no_empty_qualifier_values_in_per_entry_features(cox1_out: Path) -> None:
-    """A blank TSV column must be dropped, not emitted as an empty qualifier.
+def test_transl_table_comes_from_the_vadr_model(cox1_out: Path) -> None:
+    """The genetic code must follow the model VADR matched, not a constant.
 
-    Scoped to the per-entry features. COMMON is exempt on purpose: metadataUtil
-    renders every mss_required field even when unset, as a template for the
-    submitter to fill in, and dr_tools rejects the record if those rows are
-    missing.
+    The COX1 model set spans six tables and the pipeline used to hardcode 5.
+    Our own example matches cox1.tt4.porifera, so every record was emitted with
+    the wrong table -- 10 of 295 residues differ between tables 4 and 5, and
+    neither produces a stop codon, so nothing downstream caught it.
+    """
+    report = load_json(cox1_out / "dfv_report.json")
+    assert report["entries"], "no per-entry report"
+    for entry in report["entries"]:
+        # Model names encode their table: cox1.tt4.porifera -> 4.
+        assert entry["model"].startswith("cox1.tt"), entry
+        expected = int(entry["model"].split(".")[1].removeprefix("tt"))
+        assert entry["transl_table"] == expected, entry
+
+    # And the MSS file carries the same value.
+    rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
+    for entry in report["entries"]:
+        assert qualifiers(rows, entry["entry"], "CDS")["transl_table"] == str(
+            entry["transl_table"]
+        )
+
+
+def test_translation_is_checked_per_entry(cox1_out: Path) -> None:
+    """Every entry reports its internal stop count and ambiguous-base count."""
+    report = load_json(cox1_out / "dfv_report.json")
+    for entry in report["entries"]:
+        assert entry["internal_stop_codons"] == 0, entry
+        assert entry["ambiguous_bases"] == 0, entry
+        assert entry["length"] > 0
+
+
+def test_no_empty_qualifier_values(cox1_out: Path) -> None:
+    """No qualifier row may be written without a value, anywhere in the file.
+
+    The DDBJ validator raises ANN2645 on any such row regardless of feature (the
+    check is in its parser, exempting only qualifiers declared value-less). That
+    covers both a TSV column a submitter left blank for one entry and a COMMON
+    field metadataUtil emits as an unset mss_required placeholder.
     """
     rows = parse_annt(cox1_out / f"{MSS_PREFIX}.annt.tsv")
-    empty = [
-        (e, f, k) for e, f, _loc, k, v in rows if k and not v and e != "COMMON"
-    ]
+    empty = [(e, f, k) for e, f, _loc, k, v in rows if k and not v]
     assert not empty, f"qualifiers with empty values: {empty}"
 
 
-def test_dfast_record_json_written_when_organism_is_shared(
-    dfv_python: str, tmp_path: Path
-) -> None:
-    """mss2json must succeed when every entry shares one organism.
+def test_record_conversion_is_pending_but_mss_still_produced(cox1_out: Path) -> None:
+    """dfast_record.json cannot be produced yet, and that must not fail the run.
 
-    Also the regression guard for the REFERENCE ``year`` placeholder: dropping it
-    from COMMON made dr_tools reject the record with
-    ``COMMON.REFERENCE.0.year: Field required`` and no JSON was written.
+    Two fields of ddbj_record's v1 schema are unconditionally required but have
+    no value in a COX1 submission, so mss2json warns and is skipped:
+
+    * ``Reference.year`` -- DDBJ no longer needs a year for an Unpublished
+      reference, and emitting a blank ``year`` row instead is ANN2645:ERR.
+    * ``CommonSource.organism`` -- dr_tools only hoists source qualifiers shared
+      by every entry, and a barcode submission is deliberately several species.
+
+    The MSS files are the deliverable and ddbj-validator passes them, so the
+    pipeline warns and carries on. Delete this test once the schema is relaxed.
     """
-    specific = write_specific_tsv(
-        tmp_path / "shared_organism.tsv",
-        [
-            {"_entry": "cox1_test", **COMPLETE_ROW},
-            {"_entry": "cox1_test2", **COMPLETE_ROW, "isolate": "isolate-2"},
-        ],
-    )
-    result = _run_cox1(dfv_python, tmp_path, specific)
-    assert result.returncode == 0, result.stdout + result.stderr
-    log = (tmp_path / "out" / "application.log").read_text()
-    assert "Failed to convert MSS to JSON" not in log, log[-2000:]
-    assert (tmp_path / "out" / "dfast_record.json").exists()
-
-
-def test_differing_organisms_still_produce_valid_mss(cox1_out: Path) -> None:
-    """Per-species organisms are the normal COX1 case and must not fail the run.
-
-    dr_tools hoists the source qualifiers shared by every entry into
-    COMMON_SOURCE and its DdbjRecord model requires ``organism`` there, so a
-    submission of several species -- the whole point of barcoding -- cannot
-    produce dfast_record.json. The MSS files are unaffected (ddbj-validator
-    passes them), so the pipeline warns and carries on rather than failing.
-    """
-    organisms = {
-        row["source"]["organism"] for row in read_specific_example().values()
-    }
     log = (cox1_out / "application.log").read_text()
-    if len(organisms) > 1:
-        assert "Failed to convert MSS to JSON" in log
-        assert not (cox1_out / "dfast_record.json").exists()
-    # Either way the MSS deliverables exist and the run succeeded.
+    assert "Failed to convert MSS to JSON" in log
+    assert not (cox1_out / "dfast_record.json").exists()
+    # The run succeeded and the submission files exist regardless.
     assert_non_empty(cox1_out / f"{MSS_PREFIX}.annt.tsv")
     assert_non_empty(cox1_out / f"{MSS_PREFIX}.seq.fa")
 
