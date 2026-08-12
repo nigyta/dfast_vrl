@@ -5,6 +5,7 @@ test/
 vadr_models
 dev/
 dev_cox1/
+devdocs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
