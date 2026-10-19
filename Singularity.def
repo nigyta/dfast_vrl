@@ -93,6 +93,7 @@ Stage: final
     export VADR_FLAVI_MODELS_VERSION="1.7-2"
     export VADR_CALCI_MODELS_VERSION="1.7-2"
     export VADR_FLU_MODELS_VERSION="1.7-2"
+    export VADR_HMPV_MODELS_VERSION="1.01"
 
 %post
     # abort the build if any step fails (unlike Docker RUN &&-chains, %post lines

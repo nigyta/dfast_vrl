@@ -29,10 +29,10 @@ parser.add_argument(
         "-M",
         "--model",
         type=str,
-        help="Reference model for VADR [mpox, sarscov2, corona, RSV, Noro, Calici, Dengue, Flavi, COX1, Flu]",
+        help="Reference model for VADR [mpox, sarscov2, corona, RSV, hMPV, Noro, Calici, Dengue, Flavi, COX1, Flu]",
         metavar="MODEL",
         required=True,
-        choices=["mpox", "sarscov2", "corona", "RSV", "Noro", "Calici", "Dengue", "Flavi", "COX1", "Flu"]
+        choices=["mpox", "sarscov2", "corona", "RSV", "hMPV", "Noro", "Calici", "Dengue", "Flavi", "COX1", "Flu"]
     )
 parser.add_argument(
         '--force',
@@ -146,6 +146,11 @@ if args.model == "Flu":
 if args.model == "RSV":
     from dfv.fix_mss_for_rsv import fix_rsv_mss
     fix_rsv_mss(work_dir, mss_file_prefix)
+
+# fix MSS file for hMPV (mol_type viral cRNA, subgroup logged)
+if args.model == "hMPV":
+    from dfv.fix_mss_for_hmpv import fix_hmpv_mss
+    fix_hmpv_mss(work_dir, mss_file_prefix)
 
 warnings = [warning.to_tuple() for warning in vadr_warnings]
 if vadr_warnings:

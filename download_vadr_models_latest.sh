@@ -10,7 +10,7 @@
 # usage: download_vadr_models_latest.sh [-d DIR] [-n] [MODEL ...]
 #   -d DIR   destination (default: $VADRMODELDIR, else the current directory)
 #   -n       dry run: print what would be downloaded and exit
-#   MODEL    any of: sarscov2 mpxv rsv cox1 corona flavi calici flu
+#   MODEL    any of: sarscov2 mpxv rsv cox1 corona flavi calici flu hmpv
 #            (default: all of them)
 #
 # Versions: VADR 1.7.3's vadr-install.sh pins, except mpxv (1.7-2 is on the FTP
@@ -21,7 +21,7 @@
 set -euo pipefail
 
 BASEURL="https://ftp.ncbi.nlm.nih.gov/pub/nawrocki/vadr-models"
-ALLMODELS="sarscov2 mpxv rsv cox1 corona flavi calici flu"
+ALLMODELS="sarscov2 mpxv rsv cox1 corona flavi calici flu hmpv"
 
 model_version () {
     case "$1" in
@@ -33,6 +33,7 @@ model_version () {
         flavi)    echo "1.7-2" ;;
         calici)   echo "1.7-2" ;;
         flu)      echo "1.7-2" ;;
+        hmpv)     echo "1.01" ;;  # GitHub release tag v1.01 (greninger-lab)
     esac
 }
 
@@ -55,6 +56,7 @@ model_env () {
         flavi)    echo "VADR_FLAVI_MODELS_VERSION" ;;
         calici)   echo "VADR_CALCI_MODELS_VERSION" ;;
         flu)      echo "VADR_FLU_MODELS_VERSION" ;;
+        hmpv)     echo "VADR_HMPV_MODELS_VERSION" ;;
     esac
 }
 
@@ -96,6 +98,9 @@ for m in $SELECTED; do
     v=$(model_version "$m")
     name="vadr-models-$m-$v"
     url="$BASEURL/$(model_urldir "$m")/$v/$name.tar.gz"
+    # hMPV comes from GitHub; its tag archive unpacks to $name/ with the model
+    # files one level down in hmpv/
+    [ "$m" = hmpv ] && url="https://github.com/greninger-lab/vadr-models-hmpv/archive/refs/tags/v$v.tar.gz"
     if [ -d "$DEST/$name" ]; then
         echo "[skip] $name (already present)"
         continue
@@ -109,6 +114,9 @@ for m in $SELECTED; do
     # extract into the temp dir first so an interrupted run never leaves a
     # half-extracted vadr-models-* directory behind
     tar -xzf "$TMPDIR_DL/$name.tar.gz" -C "$TMPDIR_DL"
+    if [ "$m" = hmpv ]; then
+        mv "$TMPDIR_DL/$name" "$TMPDIR_DL/$name.src" && mv "$TMPDIR_DL/$name.src/hmpv" "$TMPDIR_DL/$name"
+    fi
     if [ ! -d "$TMPDIR_DL/$name" ]; then
         echo "ERROR: $name.tar.gz did not contain the expected top directory '$name/'" >&2
         exit 1

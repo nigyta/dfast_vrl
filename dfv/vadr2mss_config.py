@@ -24,6 +24,15 @@ class RSV():
     mol_type = "RNA"
     minfo_file = "$VADRMODELDIR/vadr-models-rsv-$VADR_RSV_MODELS_VERSION/rsv.minfo"
 
+class Hmpv():
+    # Greninger Lab model library (github.com/greninger-lab/vadr-models-hmpv), not
+    # NCBI FTP. Options follow the authors' own config (vadr-vscan-aglab
+    # combined.conf: "--split -r"). Six models, one per subgroup A1/A2a/A2b1/A2b2/B1/B2.
+    command = "v-annotate.pl --split --cpu {cpu} -r --mkey hmpv -f --mdir $VADRMODELDIR/vadr-models-hmpv-$VADR_HMPV_MODELS_VERSION {fasta} {outdir}"
+    mol_type = "RNA"
+    minfo_file = "$VADRMODELDIR/vadr-models-hmpv-$VADR_HMPV_MODELS_VERSION/hmpv.minfo"
+    organism = "human metapneumovirus"  # NCBI taxonomy name (taxid 162145), lower-case h
+
 class Noro():
     command = "v-annotate.pl --split --cpu {cpu} --group Norovirus --mkey calici --nomisc --noprotid -f --mdir $VADRMODELDIR/vadr-models-calici-$VADR_CALCI_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
@@ -70,6 +79,7 @@ models = {
     "sarscov2": Sarscov2,
     "corona": Corona,
     "RSV": RSV,
+    "hMPV": Hmpv,
     "Noro": Noro,
     "Calici": Calisi,
     "Dengue": Dengue,

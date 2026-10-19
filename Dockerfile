@@ -137,7 +137,8 @@ ENV VADR_SCOV2_MODELS_VERSION="1.6.3-1" \
     VADR_CORONA_MODELS_VERSION="1.3-3" \
     VADR_FLAVI_MODELS_VERSION="1.7-2" \
     VADR_CALCI_MODELS_VERSION="1.7-2" \
-    VADR_FLU_MODELS_VERSION="1.7-2"
+    VADR_FLU_MODELS_VERSION="1.7-2" \
+    VADR_HMPV_MODELS_VERSION="1.01"
 
 # Copy the local source tree instead of cloning from GitHub: Docker invalidates
 # this layer automatically whenever a copied file changes (no manual cache-bust

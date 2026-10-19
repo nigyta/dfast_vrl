@@ -1,4 +1,4 @@
-"""Operational tests for ``vadr2mss.py`` across mpox / sarscov2 / RSV / Flu."""
+"""Operational tests for ``vadr2mss.py`` across mpox / sarscov2 / RSV / hMPV / Flu."""
 
 from __future__ import annotations
 
@@ -26,6 +26,8 @@ class ModelCase:
     fasta: Path
     metadata: Path
     isolate: str        # used to derive the MSS file prefix
+    # (qualifier, value) pairs that must appear in the MSS .annt.tsv
+    expect_in_annt: tuple[tuple[str, str], ...] = ()
 
 
 CASES: list[ModelCase] = [
@@ -49,6 +51,18 @@ CASES: list[ModelCase] = [
         fasta=EXAMPLES_DIR / "rsv" / "PX986933.fasta",
         metadata=EXAMPLES_DIR / "rsv" / "metadata_rsv.tsv",
         isolate="HRSV/Human/B/Japan/XX-XXX-001/2026",
+    ),
+    ModelCase(
+        id="hmpv",
+        model="hMPV",
+        fasta=EXAMPLES_DIR / "hmpv" / "LC889310.fasta",
+        metadata=EXAMPLES_DIR / "hmpv" / "metadata_hmpv.tsv",
+        isolate="hMPV/Human/Japan/XX-XXX-001/2024",
+        expect_in_annt=(
+            ("organism", "human metapneumovirus"),
+            ("mol_type", "viral cRNA"),
+            ("product", "attachment glycoprotein"),
+        ),
     ),
     ModelCase(
         id="flu_A",
@@ -181,6 +195,9 @@ def test_pipeline(dfv_python: str, vadr2mss_bin: Path, tmp_path: Path, case: Mod
         seq_path = seq_candidates[0]
     assert_non_empty(annt_path)
     assert_non_empty(seq_path)
+    annt_pairs = {tuple(row.split("\t")[3:5]) for row in annt_path.read_text().splitlines()}
+    for pair in case.expect_in_annt:
+        assert pair in annt_pairs, f"{pair} not found in {annt_path.name}"
 
     # GenBank file sanity.
     gbk_text = (out_dir / "annotation.gbk").read_text()

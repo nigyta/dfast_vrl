@@ -88,6 +88,7 @@ _MODEL_MINFO = {
     "RSV": ("vadr-models-rsv-{ver}/rsv.minfo", "VADR_RSV_MODELS_VERSION", "1.7-1"),
     "Flu": ("vadr-models-flu-{ver}/flu.minfo", "VADR_FLU_MODELS_VERSION", "1.7-2"),
     "COX1": ("vadr-models-cox1-{ver}/cox1.minfo", "VADR_COX1_MODELS_VERSION", "1.2-2"),
+    "hMPV": ("vadr-models-hmpv-{ver}/hmpv.minfo", "VADR_HMPV_MODELS_VERSION", "1.01"),
 }
 
 

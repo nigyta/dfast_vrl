@@ -87,6 +87,10 @@ Usage:
 vadr2mss.py -i INPUT.fasta -m METADATA.txt -o OUT_DIR -M MODELNAME(e.g. mpox)
 ```
 
+Available models (`-M`): `mpox`, `sarscov2`, `corona`, `RSV`, `hMPV`, `Noro`, `Calici`, `Dengue`, `Flavi`, `COX1`, `Flu`.
+
+`hMPV` (human metapneumovirus) uses the model library of the Greninger Lab ([greninger-lab/vadr-models-hmpv](https://github.com/greninger-lab/vadr-models-hmpv), six models for subgroups A1, A2a, A2b1, A2b2, B1 and B2), which is distributed on GitHub rather than on the NCBI FTP site. `download_vadr_models.sh` fetches it as well. Allow about 16 GB of memory for an hMPV run.
+
 
 To test `vadr2mss.py` using the Docker/Singularity container, download the sample files from github.
 ```
