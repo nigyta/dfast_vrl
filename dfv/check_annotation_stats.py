@@ -52,7 +52,9 @@ def get_model_info(out_dir, minfo_file):
         # print(model_info)
         model_length = model_info[0].attrs.get("length")
         # print(model_length)
-        model_num_cds = len([x for x in model_info if x.type == "CDS"])
+        # CDSs sharing an alternative_ftr_set are length variants of one gene, of
+        # which VADR annotates at most one, so count each set once.
+        model_num_cds = len({x.attrs.get("alternative_ftr_set") or id(x) for x in model_info if x.type == "CDS"})
         # print(num_cds)
     else:
         # not available for models with multi seqments
