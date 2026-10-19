@@ -43,7 +43,9 @@ For low-quality genome, use `--as_misc` to annotatte partial/ambiguous CDS as mi
 ## Docker/Singularity container
 ### Docker  
   Available from [nigyta/dfast_vrl](https://hub.docker.com/r/nigyta/dfast_vrl/)  
-  Includes NCBI VADR and other dependencies. Modified from [staphb/vadr](https://hub.docker.com/r/staphb/vadr/).
+  Includes NCBI VADR (1.7.3, installed without model libraries via `vadr-install.sh --models none`) and other dependencies.
+  VADR models are not bundled: download them with `download_vadr_models.sh` and mount the directory at `/vadr_models`.
+  `download_vadr_models_latest.sh` fetches newer model versions next to the pinned ones (for evaluation before moving the pins; see `-h`).
 
   
 Example:  

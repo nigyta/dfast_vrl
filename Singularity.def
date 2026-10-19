@@ -1,5 +1,47 @@
+# Two-stage build mirroring the Dockerfile: stage `vadr-build` compiles VADR with
+# no model libraries; the final stage copies only /opt/vadr out of it.
+
+# ---------------------------------------------------------------------------
+# Stage 1: build VADR. The compilers, autoconf and source trees stay here.
+# ---------------------------------------------------------------------------
 Bootstrap: docker
-From: staphb/vadr:1.7-slim
+From: ubuntu:noble
+Stage: vadr-build
+
+%post
+    set -e
+    export DEBIAN_FRONTEND=noninteractive
+    VADR_VERSION="1.7.3"
+    export VADRINSTALLDIR=/opt/vadr
+
+    # build deps listed in vadr-install.sh, plus autoconf (easel) and zlib
+    # (minimap2). python3 is deliberately NOT installed: vadr-install.sh then
+    # skips R2DT (used only by `v-annotate.pl --draw_r2dt`) with a warning.
+    apt-get update && apt-get install -y --no-install-recommends \
+        build-essential autoconf ca-certificates curl git libinline-c-perl \
+        perl unzip wget zlib1g-dev
+
+    # `--models none` (added in VADR 1.7.3) installs the software only; models
+    # are mounted at runtime (download_vadr_models.sh). Keep only what the final
+    # stage needs.
+    mkdir -p ${VADRINSTALLDIR} && cd ${VADRINSTALLDIR}
+    curl -fsSL https://raw.githubusercontent.com/ncbi/vadr/vadr-${VADR_VERSION}/vadr-install.sh -o vadr-install.sh
+    bash vadr-install.sh linux --models none
+    rm -rf vadr-install.sh *.zip *.tar.gz \
+        R2DT r2dt-venv traveler jiffy-infernal-hmmer-scripts r2dt-install.log \
+        vadr/testfiles vadr/documentation minimap2/test
+    find infernal -mindepth 1 -maxdepth 1 ! -name binaries -exec rm -rf {} +
+    find fasta -mindepth 1 -maxdepth 1 ! -name bin -exec rm -rf {} +
+    find minimap2 -mindepth 1 -maxdepth 1 ! -name minimap2 -exec rm -rf {} +
+    find Bio-Easel -mindepth 1 -maxdepth 1 ! -name blib ! -name scripts -exec rm -rf {} +
+    find /opt -type f -iname "*.fa" -delete
+
+# ---------------------------------------------------------------------------
+# Stage 2: runtime.
+# ---------------------------------------------------------------------------
+Bootstrap: docker
+From: ubuntu:noble
+Stage: final
 
 %labels
     software DFAST_VRL
@@ -18,20 +60,39 @@ From: staphb/vadr:1.7-slim
     dfv /dfast_vrl/dfv
     refs /dfast_vrl/refs
 
+%files from vadr-build
+    /opt/vadr /opt/vadr
+
 %environment
-    # VADR env vars / PATH are inherited from the docker base image.
     export LC_ALL=C
+    # VADR environment, as printed at the end of vadr-install.sh. VADRMODELDIR
+    # points at the host mount (no models are installed under /opt/vadr).
+    export VADRINSTALLDIR=/opt/vadr
     export VADRMODELDIR=/vadr_models
+    export VADRSCRIPTSDIR=$VADRINSTALLDIR/vadr
+    export VADRMINISCRIPTSDIR=$VADRSCRIPTSDIR/miniscripts
+    export VADRCONFIGFILE=$VADRSCRIPTSDIR/vadr.config
+    export VADRINFERNALDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADREASELDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRHMMERDIR=$VADRINSTALLDIR/infernal/binaries
+    export VADRBIOEASELDIR=$VADRINSTALLDIR/Bio-Easel
+    export VADRSEQUIPDIR=$VADRINSTALLDIR/sequip
+    export VADRBLASTDIR=$VADRINSTALLDIR/ncbi-blast/bin
+    export VADRFASTADIR=$VADRINSTALLDIR/fasta/bin
+    export VADRMINIMAP2DIR=$VADRINSTALLDIR/minimap2
+    export PERL5LIB=$VADRSCRIPTSDIR:$VADRSEQUIPDIR:$VADRBIOEASELDIR/blib/lib:$VADRBIOEASELDIR/blib/arch
+    export PATH=$VADRSCRIPTSDIR:$VADRMINISCRIPTSDIR:$VADRINFERNALDIR:$VADRSEQUIPDIR:$VADRBLASTDIR:$VADRFASTADIR:$VADRMINIMAP2DIR:$PATH
     # VADR_*_MODELS_VERSION are shell-expanded into the v-annotate.pl --mdir path
     # at runtime (dfv/vadr.py, dfv/vadr2mss_config.py) and read via os.getenv
     # (dfv/reference_models.py). Models themselves are mounted at $VADRMODELDIR.
-    export VADR_SCOV2_MODELS_VERSION="1.3-2"
-    export VADR_MPXV_MODELS_VERSION="1.4.2-1"
-    export VADR_RSV_MODELS_VERSION="1.5-2"
+    export VADR_SCOV2_MODELS_VERSION="1.6.3-1"
+    export VADR_MPXV_MODELS_VERSION="1.7-2"
+    export VADR_RSV_MODELS_VERSION="1.7-1"
     export VADR_COX1_MODELS_VERSION="1.2-2"
     export VADR_CORONA_MODELS_VERSION="1.3-3"
-    export VADR_FLAVI_MODELS_VERSION="1.2-1"
-    export VADR_CALCI_MODELS_VERSION="1.2-1"
+    export VADR_FLAVI_MODELS_VERSION="1.7-2"
+    export VADR_CALCI_MODELS_VERSION="1.7-2"
+    export VADR_FLU_MODELS_VERSION="1.7-2"
 
 %post
     # abort the build if any step fails (unlike Docker RUN &&-chains, %post lines
@@ -40,10 +101,14 @@ From: staphb/vadr:1.7-slim
     set -e
     export DEBIAN_FRONTEND=noninteractive
 
-    # runtime deps missing from the base (git, python3, mafft, JRE for snpEff);
-    # wget / unzip / curl are already present in the base.
+    # runtime deps: perl + modules for VADR (Mozilla::CA needed since 1.6.4;
+    # libinline-perl, not -c-: Bio-Easel's .so is prebuilt, so no gcc needed;
+    # libgomp1 for BLAST+, which gcc would otherwise have pulled in),
+    # git/python3 for dr_tools + Biopython, mafft, JRE for snpEff
     apt-get update && apt-get install -y --no-install-recommends \
-        git python3 python3-pip python-is-python3 mafft openjdk-17-jre-headless
+        ca-certificates curl git libgomp1 libinline-perl liblwp-protocol-https-perl \
+        libmozilla-ca-perl mafft openjdk-17-jre-headless perl procps \
+        python-is-python3 python3 python3-pip unzip wget
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
     # snpEff 5.0 (pinned: committed snpEffectPredictor.bin databases were built with 5.0)
@@ -64,7 +129,15 @@ From: staphb/vadr:1.7-slim
     ln -s /dfast_vrl/vadr2mss.py /usr/bin/vadr2mss.py
     ln -s /dfast_vrl/cox1_to_ddbj.py /usr/bin/cox1_to_ddbj.py
 
-    # verify
+    # mount point for the models (v-annotate.pl refuses to start without it)
+    mkdir -p /vadr_models
+
+    # verify: no VADR binary with an unresolved shared library, and dfast_vrl runs
+    # (%environment is not sourced during %post)
+    # (an explicit exit: `set -e` ignores a failing `! cmd`)
+    if find /opt/vadr -type f \( -perm -u+x -o -name "*.so" \) -exec ldd {} \; 2>/dev/null | grep "not found"; then
+        exit 1
+    fi
     dfast_vrl --version
 
 %runscript

@@ -83,10 +83,10 @@ def vadr_model_dir() -> Path:
 # defaults; if a variable is unset we fall back to a sensible default that
 # matches the image.
 _MODEL_MINFO = {
-    "mpox": ("vadr-models-mpxv-{ver}/mpxv.minfo", "VADR_MPXV_MODELS_VERSION", "1.4.2-1"),
-    "sarscov2": ("vadr-models-sarscov2-{ver}/sarscov2.minfo", "VADR_SCOV2_MODELS_VERSION", "1.3-2"),
-    "RSV": ("vadr-models-rsv-{ver}/rsv.minfo", "VADR_RSV_MODELS_VERSION", "1.5-2"),
-    "Flu": ("vadr-models-flu-1.6.3-2/flu.minfo", None, None),
+    "mpox": ("vadr-models-mpxv-{ver}/mpxv.minfo", "VADR_MPXV_MODELS_VERSION", "1.7-2"),
+    "sarscov2": ("vadr-models-sarscov2-{ver}/sarscov2.minfo", "VADR_SCOV2_MODELS_VERSION", "1.6.3-1"),
+    "RSV": ("vadr-models-rsv-{ver}/rsv.minfo", "VADR_RSV_MODELS_VERSION", "1.7-1"),
+    "Flu": ("vadr-models-flu-{ver}/flu.minfo", "VADR_FLU_MODELS_VERSION", "1.7-2"),
     "COX1": ("vadr-models-cox1-{ver}/cox1.minfo", "VADR_COX1_MODELS_VERSION", "1.2-2"),
 }
 

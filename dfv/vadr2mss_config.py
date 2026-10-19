@@ -1,5 +1,8 @@
 
 class Mpox():
+    # --nomisc is deliberately omitted (unlike the model package's recommended
+    # command): without it, fatal alerts in non-essential (misc_not_failure)
+    # genes turn the feature into a misc_feature instead of failing the sequence.
     # command = "v-annotate.pl --split --cpu {cpu} --glsearch --minimap2 -s -r --nomisc --mkey mpxv --r_lowsimok --r_lowsimxd 100 --r_lowsimxl 2000 --alt_pass discontn,dupregin --s_overhang 150 -f --mdir $VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION {fasta} {outdir}"
     command = "v-annotate.pl --split --cpu {cpu} --glsearch --minimap2 -s -r --mkey mpxv --r_lowsimok --r_lowsimxd 100 --r_lowsimxl 2000 --alt_pass discontn,dupregin --s_overhang 150 -f --mdir $VADRMODELDIR/vadr-models-mpxv-$VADR_MPXV_MODELS_VERSION {fasta} {outdir}"
     mol_type = "DNA"
@@ -22,24 +25,24 @@ class RSV():
     minfo_file = "$VADRMODELDIR/vadr-models-rsv-$VADR_RSV_MODELS_VERSION/rsv.minfo"
 
 class Noro():
-    command = "v-annotate.pl --split --cpu {cpu} --group Norovirus --mkey calici --nomisc --noprotid -f -mdir $VADRMODELDIR/vadr-models-calici {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --group Norovirus --mkey calici --nomisc --noprotid -f --mdir $VADRMODELDIR/vadr-models-calici-$VADR_CALCI_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
-    minfo_file = "$VADRMODELDIR/vadr-models-calici/noro.minfo"
+    minfo_file = "$VADRMODELDIR/vadr-models-calici-$VADR_CALCI_MODELS_VERSION/noro.minfo"
 
 class Calisi():
-    command = "v-annotate.pl --split --cpu {cpu} --mkey calici --nomisc --noprotid -f -mdir $VADRMODELDIR/vadr-models-calici {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --mkey calici --nomisc --noprotid -f --mdir $VADRMODELDIR/vadr-models-calici-$VADR_CALCI_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
-    minfo_file = "$VADRMODELDIR/vadr-models-calisi/calisi.minfo"
+    minfo_file = "$VADRMODELDIR/vadr-models-calici-$VADR_CALCI_MODELS_VERSION/calici.minfo"
 
 class Dengue():
-    command = "v-annotate.pl --split --cpu {cpu} --group Dengue --nomisc --noprotid --mkey flavi -f -mdir $VADRMODELDIR/vadr-models-flavi {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --group Dengue --nomisc --noprotid --mkey flavi -f --mdir $VADRMODELDIR/vadr-models-flavi-$VADR_FLAVI_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
-    minfo_file = "$VADRMODELDIR/vadr-models-flavi/dengue.minfo"
+    minfo_file = "$VADRMODELDIR/vadr-models-flavi-$VADR_FLAVI_MODELS_VERSION/dengue.minfo"
 
 class Flavi():
-    command = "v-annotate.pl --split --cpu {cpu} --nomisc --noprotid --mkey flavi -f -mdir $VADRMODELDIR/vadr-models-flavi {fasta} {outdir}"
+    command = "v-annotate.pl --split --cpu {cpu} --nomisc --noprotid --mkey flavi -f --mdir $VADRMODELDIR/vadr-models-flavi-$VADR_FLAVI_MODELS_VERSION {fasta} {outdir}"
     mol_type = "RNA"
-    minfo_file = "$VADRMODELDIR/vadr-models-flavi/flavi.minfo"
+    minfo_file = "$VADRMODELDIR/vadr-models-flavi-$VADR_FLAVI_MODELS_VERSION/flavi.minfo"
 
 class COX1():
     # command = "v-annotate.pl --split --cpu {cpu} --xmaxdel 3 --xmaxins 3 --xlongest --mkey cox1 --alt_pass lowcovrg --alt_fail fstlocfi,fstlocf5,fstlocf3 --fstminnti 5 --fstminnt5 5 --fstminnt3 5 --nomisc --noprotid --xsub $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION/cox1.phy.xsub --mdir $VADRMODELDIR/vadr-models-cox1-$VADR_COX1_MODELS_VERSION {fasta} {outdir}"
@@ -55,9 +58,9 @@ class COX1():
     # a missing one as an error rather than falling back to a constant.
 
 class Flu():
-    command = "v-annotate.pl -f --split --cpu {cpu} --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey flu --mdir $VADRMODELDIR/vadr-models-flu-1.6.3-2 {fasta} {outdir}"
+    command = "v-annotate.pl -f --split --cpu {cpu} --atgonly --xnocomp --nomisc --alt_fail extrant5,extrant3 --mkey flu --mdir $VADRMODELDIR/vadr-models-flu-$VADR_FLU_MODELS_VERSION {fasta} {outdir}"
     mol_type = "cRNA"
-    minfo_file = "$VADRMODELDIR/vadr-models-flu-1.6.3-2/flu.minfo"
+    minfo_file = "$VADRMODELDIR/vadr-models-flu-$VADR_FLU_MODELS_VERSION/flu.minfo"
 
 
 
