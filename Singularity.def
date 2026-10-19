@@ -132,6 +132,11 @@ Stage: final
     # mount point for the models (v-annotate.pl refuses to start without it)
     mkdir -p /vadr_models
 
+    # dfv/reference_models.py reads VADRMODELDIR at import time, so the check
+    # below needs it even for --version; %environment is not sourced in %post
+    # (the Dockerfile sets it with ENV before its RUN check).
+    export VADRMODELDIR=/vadr_models
+
     # verify: no VADR binary with an unresolved shared library, and dfast_vrl runs
     # (%environment is not sourced during %post)
     # (an explicit exit: `set -e` ignores a failing `! cmd`)
