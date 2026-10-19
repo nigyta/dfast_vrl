@@ -21,6 +21,8 @@ tests
 examples
 
 # local-only artifacts that must not leak into the image
+# VADR models (several GB) are mounted at /vadr_models at runtime, never baked in
+vadr_models
 flu
 cox_metadata.tsv
 CLAUDE.md
