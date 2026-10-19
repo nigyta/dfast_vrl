@@ -13,7 +13,7 @@ from dfv.cox1_helper import (
 )
 from dfv.fix_mss_for_cox1 import fix_cox1_mss
 
-VERSION = "1.7.0-0.1"
+VERSION = "1.7.3-0.1"
 
 
 parser = argparse.ArgumentParser(prog="cox1_to_ddbj.py",
