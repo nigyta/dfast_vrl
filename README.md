@@ -19,6 +19,7 @@ It internally uses NCBI-VADR and can generate data submission files to DDBJ.
 - snpEff
 - MAFFT
 - Biopython
+- [dr_tools](https://github.com/ddbj/dr_tools) (Python 3.10 or later), which writes annotation.gff
 
 Since DFAST_VRL depends on many external binaries and modules, it is recommended to use Docker/Singularity container as described below.
 
