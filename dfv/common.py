@@ -97,7 +97,8 @@ def mss2json(work_dir, mss_file_prefix):
             ann_file = os.path.join(work_dir, f"{mss_file_prefix}.annt.tsv")
             seq_file = os.path.join(work_dir, f"{mss_file_prefix}.seq.fa")
             out_json_file = os.path.join(work_dir, "dfast_record.json")
-            drt_ann2json(ann_file, seq_file, out_json_file, division="VRL")
+            # v3 is the version dr_tools builds directly from the MSS files, and the only one the DFAST web service accepts
+            drt_ann2json(ann_file, seq_file, out_json_file, division="VRL", record_version="v3")
             logger.info(f"Converted MSS file into JSON. {ann_file} --> {out_json_file}")
 
         except ImportError:
